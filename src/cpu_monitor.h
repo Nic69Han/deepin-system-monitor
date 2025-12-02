@@ -62,19 +62,19 @@ private:
     double ringBackgroundOpacity;
     double ringForegroundOpacity;
     int animationIndex = 0;
-    int cpuRenderMaxHeight = 45;
+    int cpuRenderMaxHeight = 30;
     int iconPadding = 0;
-    int iconRenderOffsetY = 185;
+    int iconRenderOffsetY = 110;
     int paddingRight = 10;
-    int percentRenderOffsetY = 147;
+    int percentRenderOffsetY = 85;
     int pointsNumber = 24;
-    int ringRadius = 90;
-    int ringRenderOffsetY = 90;
-    int ringWidth = 8;
+    int ringRadius = 55;
+    int ringRenderOffsetY = 50;
+    int ringWidth = 6;
     int titleAreaPaddingX = 5;
-    int titleRenderOffsetY = 180;
+    int titleRenderOffsetY = 105;
     int waveformsRenderOffsetX;
-    int waveformsRenderOffsetY = 100;
+    int waveformsRenderOffsetY = 55;
 };
 
 #endif    

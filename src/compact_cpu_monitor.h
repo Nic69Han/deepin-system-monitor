@@ -47,24 +47,24 @@ private:
     QList<QPainterPath> cpuPaths;
     QList<QString> cpuColors;
     QString textColor;
-    int cpuRenderMaxHeight = 80;
-    int cpuWaveformsRenderOffsetY = 112;
+    int cpuRenderMaxHeight = 50;
+    int cpuWaveformsRenderOffsetY = 72;
     int gridPaddingRight = 21;
-    int gridPaddingTop = 10;
-    int gridRenderOffsetY = 16;
-    int gridSize = 20;
+    int gridPaddingTop = 8;
+    int gridRenderOffsetY = 12;
+    int gridSize = 15;
     int pointsNumber = 51;
-    int waveformRenderPadding = 20;
+    int waveformRenderPadding = 15;
     int numCPU;
     double totalCpuPercent = 0;
-    
-    int cpuTextRenderSize = 9;
+
+    int cpuTextRenderSize = 8;
     QString cpuColor = "#1094D8";
     int pointerRenderPaddingX = 4;
-    int pointerRenderPaddingY = 9;
+    int pointerRenderPaddingY = 6;
     int cpuRenderPaddingX = 13;
     int cpuRenderPaddingY = 2;
-    int pointerRadius = 3;
+    int pointerRadius = 2;
     QString summaryColor;
 };
 

@@ -57,7 +57,7 @@ MemoryMonitor::MemoryMonitor(QWidget *parent) : QWidget(parent)
     connect(timer, SIGNAL(timeout()), this, SLOT(render()));
     timer->start();
 
-    setFixedHeight(120);
+    setFixedHeight(80);
 }
 
 MemoryMonitor::~MemoryMonitor()

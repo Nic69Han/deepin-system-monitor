@@ -49,21 +49,21 @@ private:
     QString summaryColor;
     QString gpuColor = "#00CC00";  // Green for GPU
 
-    int gpuRenderMaxHeight = 80;
-    int gpuWaveformsRenderOffsetY = 112;
+    int gpuRenderMaxHeight = 50;
+    int gpuWaveformsRenderOffsetY = 72;
     int gridPaddingRight = 21;
-    int gridPaddingTop = 10;
-    int gridRenderOffsetY = 16;
-    int gridSize = 20;
+    int gridPaddingTop = 8;
+    int gridRenderOffsetY = 12;
+    int gridSize = 15;
     int pointsNumber = 51;
-    int waveformRenderPadding = 20;
+    int waveformRenderPadding = 15;
 
-    int gpuTextRenderSize = 9;
+    int gpuTextRenderSize = 8;
     int pointerRenderPaddingX = 4;
-    int pointerRenderPaddingY = 9;
+    int pointerRenderPaddingY = 6;
     int gpuRenderPaddingX = 13;
     int gpuRenderPaddingY = 2;
-    int pointerRadius = 3;
+    int pointerRadius = 2;
 
     double totalGpuPercent = 0;
     bool gpuAvailable = false;

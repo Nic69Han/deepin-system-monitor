@@ -44,7 +44,7 @@ CpuMonitor::CpuMonitor(QWidget *parent) : QWidget(parent)
     connect(DThemeManager::instance(), &DThemeManager::themeChanged, this, &CpuMonitor::changeTheme);
 
     int statusBarMaxWidth = Utils::getStatusBarMaxWidth();
-    setFixedSize(statusBarMaxWidth, 250);
+    setFixedSize(statusBarMaxWidth, 150);
     waveformsRenderOffsetX = (statusBarMaxWidth - 140) / 2;
 
     cpuPercents = new QList<double>();
@@ -145,7 +145,7 @@ void CpuMonitor::paintEvent(QPaintEvent *)
     painter.setRenderHint(QPainter::Antialiasing, true);
 
     QFont font = painter.font() ;
-    font.setPointSize(20);
+    font.setPointSize(14);
     font.setWeight(QFont::Light);
 
     QFontMetrics fm(font);
@@ -156,11 +156,13 @@ void CpuMonitor::paintEvent(QPaintEvent *)
     painter.drawPixmap(QPoint((rect().x() + (rect().width() - iconTitleWidth) / 2) - titleAreaPaddingX - paddingRight, iconRenderOffsetY), iconImage);
 
     painter.setFont(font);
-    painter.setPen(QPen(QColor(textColor)));
+    QColor titleColor(textColor);
+    titleColor.setAlphaF(0.5);
+    painter.setPen(QPen(titleColor));
     painter.drawText(QRect((rect().x() + (rect().width() - iconTitleWidth) / 2) + iconImage.width() + iconPadding - titleAreaPaddingX - paddingRight,
                            rect().y() + titleRenderOffsetY,
                            titleWidth,
-                           30
+                           24
                          ), Qt::AlignCenter, tr("CPU"));
 
     double percent = (cpuPercents->at(cpuPercents->size() - 2) + easeInOut(animationIndex / animationFrames) * (cpuPercents->last() - cpuPercents->at(cpuPercents->size() - 2)));

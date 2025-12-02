@@ -43,7 +43,7 @@ CompactCpuMonitor::CompactCpuMonitor(QWidget *parent) : QWidget(parent)
 
     int statusBarMaxWidth = Utils::getStatusBarMaxWidth();
     setFixedWidth(statusBarMaxWidth);
-    setFixedHeight(160);
+    setFixedHeight(100);
 
     pointsNumber = int(statusBarMaxWidth / 5.4);
     

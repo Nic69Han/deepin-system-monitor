@@ -46,7 +46,7 @@ NetworkMonitor::NetworkMonitor(QWidget *parent) : QWidget(parent)
 
     int statusBarMaxWidth = Utils::getStatusBarMaxWidth();
     setFixedWidth(statusBarMaxWidth);
-    setFixedHeight(190);
+    setFixedHeight(120);
 
     pointsNumber = int(statusBarMaxWidth / 5.4);
 

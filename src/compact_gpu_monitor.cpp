@@ -45,11 +45,11 @@ CompactGpuMonitor::CompactGpuMonitor(QWidget *parent) : QWidget(parent)
     // Check GPU availability first to set appropriate size
     gpuAvailable = GpuMonitor::hasGpu();
     if (gpuAvailable) {
-        setFixedHeight(160);
+        setFixedHeight(100);
         currentGpuInfo = GpuMonitor::getGpuInfo();
     } else {
         // Minimal height when no GPU
-        setFixedHeight(30);
+        setFixedHeight(20);
     }
 
     pointsNumber = int(statusBarMaxWidth / 5.4);

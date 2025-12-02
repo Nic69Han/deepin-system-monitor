@@ -49,10 +49,10 @@ GpuMonitor::GpuMonitor(QWidget *parent) : QWidget(parent)
     // Check if GPU is available - hide widget if not
     gpuAvailable = hasGpu();
     if (gpuAvailable) {
-        setFixedSize(statusBarMaxWidth, 250);
+        setFixedSize(statusBarMaxWidth, 150);
     } else {
         // Minimal height when no GPU - just show a small indicator
-        setFixedSize(statusBarMaxWidth, 40);
+        setFixedSize(statusBarMaxWidth, 25);
     }
     waveformsRenderOffsetX = (statusBarMaxWidth - 140) / 2;
 
@@ -322,15 +322,17 @@ void GpuMonitor::paintEvent(QPaintEvent *)
     if (!gpuAvailable) {
         // Draw "No GPU" message
         QFont font = painter.font();
-        font.setPointSize(14);
+        font.setPointSize(10);
         painter.setFont(font);
-        painter.setPen(QPen(QColor(textColor)));
+        QColor noGpuColor(textColor);
+        noGpuColor.setAlphaF(0.5);
+        painter.setPen(QPen(noGpuColor));
         painter.drawText(rect(), Qt::AlignCenter, tr("No GPU detected"));
         return;
     }
 
     QFont font = painter.font();
-    font.setPointSize(20);
+    font.setPointSize(14);
     font.setWeight(QFont::Light);
 
     QFontMetrics fm(font);
@@ -341,11 +343,13 @@ void GpuMonitor::paintEvent(QPaintEvent *)
     painter.drawPixmap(QPoint((rect().x() + (rect().width() - iconTitleWidth) / 2) - titleAreaPaddingX - paddingRight, iconRenderOffsetY), iconImage);
 
     painter.setFont(font);
-    painter.setPen(QPen(QColor(textColor)));
+    QColor titleColor(textColor);
+    titleColor.setAlphaF(0.5);
+    painter.setPen(QPen(titleColor));
     painter.drawText(QRect((rect().x() + (rect().width() - iconTitleWidth) / 2) + iconImage.width() + iconPadding - titleAreaPaddingX - paddingRight,
                            rect().y() + titleRenderOffsetY,
                            titleWidth,
-                           30
+                           24
                          ), Qt::AlignCenter, tr("GPU"));
 
     double percent = 0;

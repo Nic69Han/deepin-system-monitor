@@ -54,7 +54,7 @@ CompactMemoryMonitor::CompactMemoryMonitor(QWidget *parent) : QWidget(parent)
     connect(timer, SIGNAL(timeout()), this, SLOT(render()));
     timer->start();
 
-    setFixedHeight(100);
+    setFixedHeight(65);
 }
 
 CompactMemoryMonitor::~CompactMemoryMonitor()
