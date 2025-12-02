@@ -68,7 +68,8 @@ public slots:
     void stopProcesses();
     void updateProcessNumber(QString tabName, int guiProcessNumber, int systemProcessNumber);
     void updateStatus(QList<DSimpleListItem*> items);
-    
+    void showResourceLimitDialog();
+
 private:
     DDialog *killProcessDialog;
     ProcessSwitchTab *processSwitchTab;
@@ -78,6 +79,7 @@ private:
     QAction *openDirectoryAction;
     QAction *pauseAction;
     QAction *resumeAction;
+    QAction *resourceLimitAction;
     QLabel *statusLabel;
     QList<int> *actionPids;
     QMenu *rightMenu;

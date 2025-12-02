@@ -55,6 +55,7 @@ HEADERS += src/utils.h \
 	   src/alert_settings_dialog.h \
 	   src/performance_history_dialog.h \
 	   src/docker_monitor.h \
+	   src/resource_limit_dialog.h \
 	   src/constant.h \
 	   src/settings.h \
 	   src/chinese2pinyin.h \
@@ -92,6 +93,7 @@ SOURCES += src/main.cpp \
 	   src/alert_settings_dialog.cpp \
 	   src/performance_history_dialog.cpp \
 	   src/docker_monitor.cpp \
+	   src/resource_limit_dialog.cpp \
 	   src/chinese2pinyin.cpp \
 	   src/main_window.cpp \
 	   src/settings.cpp

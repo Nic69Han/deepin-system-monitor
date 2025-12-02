@@ -23,6 +23,7 @@
 
 #include "QVBoxLayout"
 #include "attributes_dialog.h"
+#include "resource_limit_dialog.h"
 #include "dthememanager.h"
 #include <DSimpleListView>
 #include "process_item.h"
@@ -108,11 +109,14 @@ ProcessManager::ProcessManager(int tabIndex, QList<bool> columnHideFlags, int so
     connect(openDirectoryAction, &QAction::triggered, this, &ProcessManager::openProcessDirectory);
     attributesAction = new QAction(tr("Properties"), this);
     connect(attributesAction, &QAction::triggered, this, &ProcessManager::showAttributes);
+    resourceLimitAction = new QAction(tr("Limit Resources"), this);
+    connect(resourceLimitAction, &QAction::triggered, this, &ProcessManager::showResourceLimitDialog);
     rightMenu->addAction(killAction);
     rightMenu->addAction(pauseAction);
     rightMenu->addAction(resumeAction);
     rightMenu->addSeparator();
     rightMenu->addAction(openDirectoryAction);
+    rightMenu->addAction(resourceLimitAction);
     rightMenu->addSeparator();
     rightMenu->addAction(attributesAction);
 
@@ -327,4 +331,24 @@ void ProcessManager::updateProcessNumber(QString tabName, int guiProcessNumber, 
 void ProcessManager::updateStatus(QList<DSimpleListItem*> items)
 {
     processView->refreshItems(items);
+}
+
+void ProcessManager::showResourceLimitDialog()
+{
+    if (actionPids->isEmpty()) {
+        return;
+    }
+
+    int pid = actionPids->first();
+
+    // Get process name
+    QString processName = "Unknown";
+    QFile cmdlineFile(QString("/proc/%1/comm").arg(pid));
+    if (cmdlineFile.open(QIODevice::ReadOnly)) {
+        processName = QString(cmdlineFile.readAll()).trimmed();
+        cmdlineFile.close();
+    }
+
+    ResourceLimitDialog *dialog = new ResourceLimitDialog(pid, processName, this);
+    dialog->show();
 }
