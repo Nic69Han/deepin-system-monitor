@@ -72,6 +72,7 @@ public slots:
     void showStartupAppsDialog();
     void showAlertSettingsDialog();
     void showPerformanceHistoryDialog();
+    void showDockerMonitorDialog();
 
 private:
     DDialog *killProcessDialog;
@@ -85,6 +86,7 @@ private:
     QAction *startupAppsAction;
     QAction *alertSettingsAction;
     QAction *performanceHistoryAction;
+    QAction *dockerMonitorAction;
     QHBoxLayout *layout;
     QMenu *menu;
     QString backgroundColor;

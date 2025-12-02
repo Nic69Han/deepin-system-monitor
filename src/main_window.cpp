@@ -30,6 +30,7 @@
 #include "startup_apps_dialog.h"
 #include "alert_settings_dialog.h"
 #include "performance_history_dialog.h"
+#include "docker_monitor.h"
 #include <DTitlebar>
 #include <QApplication>
 #include <QDebug>
@@ -85,6 +86,8 @@ MainWindow::MainWindow(DMainWindow *parent) : DMainWindow(parent)
         connect(alertSettingsAction, &QAction::triggered, this, &MainWindow::showAlertSettingsDialog);
         performanceHistoryAction = new QAction(tr("Performance History"), this);
         connect(performanceHistoryAction, &QAction::triggered, this, &MainWindow::showPerformanceHistoryDialog);
+        dockerMonitorAction = new QAction(tr("Docker Containers"), this);
+        connect(dockerMonitorAction, &QAction::triggered, this, &MainWindow::showDockerMonitorDialog);
         menu->addAction(killAction);
         menu->addAction(themeAction);
         menu->addAction(compactModeAction);
@@ -94,6 +97,7 @@ MainWindow::MainWindow(DMainWindow *parent) : DMainWindow(parent)
         menu->addAction(startupAppsAction);
         menu->addAction(alertSettingsAction);
         menu->addAction(performanceHistoryAction);
+        menu->addAction(dockerMonitorAction);
         menu->addSeparator();
 
         initTheme();
@@ -461,5 +465,11 @@ void MainWindow::showAlertSettingsDialog()
 void MainWindow::showPerformanceHistoryDialog()
 {
     PerformanceHistoryDialog *dialog = new PerformanceHistoryDialog(this);
+    dialog->show();
+}
+
+void MainWindow::showDockerMonitorDialog()
+{
+    DockerMonitorDialog *dialog = new DockerMonitorDialog(this);
     dialog->show();
 }
