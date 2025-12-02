@@ -28,6 +28,7 @@
 #include "disk_usage_dialog.h"
 #include "systemd_service_dialog.h"
 #include "startup_apps_dialog.h"
+#include "alert_settings_dialog.h"
 #include <DTitlebar>
 #include <QApplication>
 #include <QDebug>
@@ -79,6 +80,8 @@ MainWindow::MainWindow(DMainWindow *parent) : DMainWindow(parent)
         connect(systemdServiceAction, &QAction::triggered, this, &MainWindow::showSystemdServiceDialog);
         startupAppsAction = new QAction(tr("Startup Applications"), this);
         connect(startupAppsAction, &QAction::triggered, this, &MainWindow::showStartupAppsDialog);
+        alertSettingsAction = new QAction(tr("Alert Settings"), this);
+        connect(alertSettingsAction, &QAction::triggered, this, &MainWindow::showAlertSettingsDialog);
         menu->addAction(killAction);
         menu->addAction(themeAction);
         menu->addAction(compactModeAction);
@@ -86,6 +89,7 @@ MainWindow::MainWindow(DMainWindow *parent) : DMainWindow(parent)
         menu->addAction(diskUsageAction);
         menu->addAction(systemdServiceAction);
         menu->addAction(startupAppsAction);
+        menu->addAction(alertSettingsAction);
         menu->addSeparator();
 
         initTheme();
@@ -441,5 +445,11 @@ void MainWindow::showSystemdServiceDialog()
 void MainWindow::showStartupAppsDialog()
 {
     StartupAppsDialog *dialog = new StartupAppsDialog(this);
+    dialog->show();
+}
+
+void MainWindow::showAlertSettingsDialog()
+{
+    AlertSettingsDialog *dialog = new AlertSettingsDialog(this);
     dialog->show();
 }

@@ -25,6 +25,7 @@
 #include "memory_monitor.h"
 #include "dthememanager.h"
 #include "utils.h"
+#include "alert_settings_dialog.h"
 #include <QDebug>
 #include <QPainter>
 #include <QtMath>
@@ -134,6 +135,12 @@ void MemoryMonitor::updateStatus(long uMemory, long tMemory, long uSwap, long tS
 
         animationIndex = 0;
         timer->start(30);
+
+        // Check for memory alert
+        if (totalMemory > 0) {
+            double memPercent = (usedMemory * 100.0) / totalMemory;
+            AlertSettingsDialog::checkAndNotify("memory", memPercent, "Memory");
+        }
     }
 }
 

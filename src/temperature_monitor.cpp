@@ -13,6 +13,7 @@
 #include "dthememanager.h"
 #include "utils.h"
 #include "constant.h"
+#include "alert_settings_dialog.h"
 #include <QPainter>
 #include <QDir>
 #include <QFile>
@@ -63,6 +64,12 @@ void TemperatureMonitor::changeTheme(QString )
 void TemperatureMonitor::updateStatus()
 {
     readTemperatures();
+
+    // Check for temperature alerts
+    for (const SensorInfo &sensor : sensors) {
+        AlertSettingsDialog::checkAndNotify("temp", sensor.temperature, sensor.name);
+    }
+
     repaint();
 }
 

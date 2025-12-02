@@ -70,6 +70,7 @@ public slots:
     void showDiskUsageDialog();
     void showSystemdServiceDialog();
     void showStartupAppsDialog();
+    void showAlertSettingsDialog();
 
 private:
     DDialog *killProcessDialog;
@@ -81,6 +82,7 @@ private:
     QAction *diskUsageAction;
     QAction *systemdServiceAction;
     QAction *startupAppsAction;
+    QAction *alertSettingsAction;
     QHBoxLayout *layout;
     QMenu *menu;
     QString backgroundColor;

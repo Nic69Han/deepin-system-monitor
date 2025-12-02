@@ -26,6 +26,7 @@
 #include "dthememanager.h"
 #include "smooth_curve_generator.h"
 #include "utils.h"
+#include "alert_settings_dialog.h"
 #include <QDebug>
 #include <QPainter>
 #include <DHiDPIHelper>
@@ -113,6 +114,9 @@ void CpuMonitor::updateStatus(double cpuPercent, std::vector<double>)
     if (cpuPercents->size() > pointsNumber) {
         cpuPercents->pop_front();
     }
+
+    // Check for CPU alert
+    AlertSettingsDialog::checkAndNotify("cpu", cpuPercent, "CPU");
 
     QList<QPointF> points;
 
