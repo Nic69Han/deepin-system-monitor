@@ -51,6 +51,7 @@ HEADERS += src/utils.h \
 	   src/attributes_dialog.h \
 	   src/disk_usage_dialog.h \
 	   src/systemd_service_dialog.h \
+	   src/startup_apps_dialog.h \
 	   src/constant.h \
 	   src/settings.h \
 	   src/chinese2pinyin.h \
@@ -84,6 +85,7 @@ SOURCES += src/main.cpp \
 	   src/attributes_dialog.cpp \
 	   src/disk_usage_dialog.cpp \
 	   src/systemd_service_dialog.cpp \
+	   src/startup_apps_dialog.cpp \
 	   src/chinese2pinyin.cpp \
 	   src/main_window.cpp \
 	   src/settings.cpp

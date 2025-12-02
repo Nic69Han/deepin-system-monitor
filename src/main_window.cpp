@@ -27,6 +27,7 @@
 #include "main_window.h"
 #include "disk_usage_dialog.h"
 #include "systemd_service_dialog.h"
+#include "startup_apps_dialog.h"
 #include <DTitlebar>
 #include <QApplication>
 #include <QDebug>
@@ -76,12 +77,15 @@ MainWindow::MainWindow(DMainWindow *parent) : DMainWindow(parent)
         connect(diskUsageAction, &QAction::triggered, this, &MainWindow::showDiskUsageDialog);
         systemdServiceAction = new QAction(tr("System Services"), this);
         connect(systemdServiceAction, &QAction::triggered, this, &MainWindow::showSystemdServiceDialog);
+        startupAppsAction = new QAction(tr("Startup Applications"), this);
+        connect(startupAppsAction, &QAction::triggered, this, &MainWindow::showStartupAppsDialog);
         menu->addAction(killAction);
         menu->addAction(themeAction);
         menu->addAction(compactModeAction);
         menu->addSeparator();
         menu->addAction(diskUsageAction);
         menu->addAction(systemdServiceAction);
+        menu->addAction(startupAppsAction);
         menu->addSeparator();
 
         initTheme();
@@ -431,5 +435,11 @@ void MainWindow::showDiskUsageDialog()
 void MainWindow::showSystemdServiceDialog()
 {
     SystemdServiceDialog *dialog = new SystemdServiceDialog(this);
+    dialog->show();
+}
+
+void MainWindow::showStartupAppsDialog()
+{
+    StartupAppsDialog *dialog = new StartupAppsDialog(this);
     dialog->show();
 }
