@@ -25,10 +25,12 @@
 #include "dthememanager.h"
 #include "dwindowmanagerhelper.h"
 #include "main_window.h"
+#include "disk_usage_dialog.h"
 #include <DTitlebar>
 #include <QApplication>
 #include <QDebug>
 #include <QDesktopWidget>
+#include <QDir>
 #include <QKeyEvent>
 #include <QStyleFactory>
 #include <iostream>
@@ -69,9 +71,12 @@ MainWindow::MainWindow(DMainWindow *parent) : DMainWindow(parent)
         compactModeAction = new QAction(tr("Compact mode"), this);
         compactModeAction->setCheckable(true);
         connect(compactModeAction, &QAction::triggered, this, &MainWindow::switchCompactMode);
+        diskUsageAction = new QAction(tr("Disk Usage Analyzer"), this);
+        connect(diskUsageAction, &QAction::triggered, this, &MainWindow::showDiskUsageDialog);
         menu->addAction(killAction);
         menu->addAction(themeAction);
         menu->addAction(compactModeAction);
+        menu->addAction(diskUsageAction);
         menu->addSeparator();
 
         initTheme();
@@ -409,4 +414,11 @@ void MainWindow::adjustDiskMoitor()
     } else {
         statusMonitor->hideDiskMonitor();
     }
+}
+
+void MainWindow::showDiskUsageDialog()
+{
+    QString homePath = QDir::homePath();
+    DiskUsageDialog *dialog = new DiskUsageDialog(this, homePath);
+    dialog->show();
 }

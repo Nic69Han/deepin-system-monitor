@@ -22,13 +22,16 @@
  */ 
 
 #ifndef ATTRIBUTESDIALOG_H
-#define ATTRIBUTESDIALOG_H 
+#define ATTRIBUTESDIALOG_H
 
 #include "find_window_title.h"
 #include <QLabel>
 #include <QPaintEvent>
 #include <QVBoxLayout>
 #include <QWidget>
+#include <QTabWidget>
+#include <QListWidget>
+#include <QTreeWidget>
 #include <ddialog.h>
 #include <dwindowclosebutton.h>
 
@@ -37,15 +40,19 @@ DWIDGET_USE_NAMESPACE
 class AttributesDialog : public Dtk::Widget::DAbstractDialog
 {
     Q_OBJECT
-    
+
 public:
     AttributesDialog(QWidget *parent = 0, int pid=-1);
     ~AttributesDialog();
 
     int getPid();
     void paintEvent(QPaintEvent *);
-    
+
 private:
+    void loadOpenFiles();
+    void loadNetworkPorts();
+    void loadProcessTree();
+
     DWindowCloseButton *closeButton;
     FindWindowTitle *findWindowTitle;
     QHBoxLayout *cmdlineLayout;
@@ -60,6 +67,13 @@ private:
     QLabel *startTimeTitleLabel;
     QLabel *titleLabel;
     QVBoxLayout *layout;
+
+    // New widgets for process dependencies
+    QTabWidget *tabWidget;
+    QListWidget *openFilesList;
+    QListWidget *networkPortsList;
+    QTreeWidget *processTree;
+
     int pid;
 };
 

@@ -28,6 +28,11 @@
 #include <QDateTime>
 #include <QDebug>
 #include <QPainter>
+#include <QDir>
+#include <QFile>
+#include <QFileInfo>
+#include <QTextStream>
+#include <QHeaderView>
 #include <dthememanager.h>
 #include <proc/readproc.h>
 #include <proc/sysinfo.h>
@@ -104,16 +109,44 @@ AttributesDialog::AttributesDialog(QWidget *parent, int processId) : DAbstractDi
     startTimeLayout->addWidget(startTimeLabel);
     startTimeLayout->addSpacing(20);
 
+    // Create tab widget for process details
+    tabWidget = new QTabWidget();
+    tabWidget->setMinimumHeight(200);
+    tabWidget->setStyleSheet("QTabWidget::pane { border: 1px solid #ddd; } "
+                             "QTabBar::tab { padding: 8px 16px; } "
+                             "QTabBar::tab:selected { background: #fff; border-bottom: 2px solid #2ca7f8; }");
+
+    // Open files tab
+    openFilesList = new QListWidget();
+    openFilesList->setStyleSheet("QListWidget { border: none; background: transparent; } "
+                                  "QListWidget::item { padding: 4px; }");
+    tabWidget->addTab(openFilesList, tr("Open Files"));
+
+    // Network ports tab
+    networkPortsList = new QListWidget();
+    networkPortsList->setStyleSheet("QListWidget { border: none; background: transparent; } "
+                                     "QListWidget::item { padding: 4px; }");
+    tabWidget->addTab(networkPortsList, tr("Network"));
+
+    // Process tree tab (child processes)
+    processTree = new QTreeWidget();
+    processTree->setHeaderLabels({tr("PID"), tr("Name"), tr("CPU %"), tr("Memory")});
+    processTree->setStyleSheet("QTreeWidget { border: none; background: transparent; }");
+    processTree->header()->setStretchLastSection(true);
+    tabWidget->addTab(processTree, tr("Child Processes"));
+
     layout->addWidget(closeButton, 0, Qt::AlignTop | Qt::AlignRight);
-    layout->addSpacing(20);
+    layout->addSpacing(10);
     layout->addWidget(iconLabel, 0, Qt::AlignHCenter);
-    layout->addSpacing(14);
+    layout->addSpacing(10);
     layout->addWidget(titleLabel, 0, Qt::AlignHCenter);
-    layout->addSpacing(20);
+    layout->addSpacing(15);
     layout->addLayout(nameLayout);
     layout->addLayout(cmdlineLayout);
     layout->addLayout(startTimeLayout);
-    layout->addSpacing(20);
+    layout->addSpacing(10);
+    layout->addWidget(tabWidget);
+    layout->addSpacing(10);
 
     // Read the list of open processes information.
     PROCTAB* proc = openproc(PROC_FILLMEM | PROC_FILLSTAT | PROC_FILLSTATUS | PROC_FILLUSR | PROC_FILLCOM);
@@ -157,6 +190,14 @@ AttributesDialog::AttributesDialog(QWidget *parent, int processId) : DAbstractDi
             break;
         }
     }
+
+    // Load process details tabs
+    loadOpenFiles();
+    loadNetworkPorts();
+    loadProcessTree();
+
+    // Set dialog size to accommodate tabs
+    setMinimumSize(450, 500);
 }
 
 AttributesDialog::~AttributesDialog()
@@ -171,6 +212,10 @@ AttributesDialog::~AttributesDialog()
     delete startTimeLabel;
     delete startTimeTitleLabel;
     delete cmdlineLabel;
+    delete openFilesList;
+    delete networkPortsList;
+    delete processTree;
+    delete tabWidget;
     delete nameLayout;
     delete cmdlineLayout;
     delete startTimeLayout;
@@ -190,4 +235,189 @@ void AttributesDialog::paintEvent(QPaintEvent *)
     path.addRect(QRectF(rect()));
     painter.setOpacity(1);
     painter.fillPath(path, QColor("#ffffff"));
+}
+
+void AttributesDialog::loadOpenFiles()
+{
+    QString fdPath = QString("/proc/%1/fd").arg(pid);
+    QDir fdDir(fdPath);
+
+    if (!fdDir.exists()) {
+        openFilesList->addItem(tr("Cannot access file descriptors"));
+        return;
+    }
+
+    QStringList entries = fdDir.entryList(QDir::NoDotAndDotDot | QDir::AllEntries);
+    int fileCount = 0;
+
+    for (const QString &entry : entries) {
+        QString linkPath = fdPath + "/" + entry;
+        QFileInfo info(linkPath);
+
+        if (info.isSymLink()) {
+            QString target = info.symLinkTarget();
+            // Filter out special files like pipes, sockets shown differently
+            if (!target.startsWith("pipe:") && !target.startsWith("socket:") &&
+                !target.startsWith("anon_inode:") && !target.isEmpty()) {
+                openFilesList->addItem(QString("📄 %1").arg(target));
+                fileCount++;
+            }
+        }
+
+        if (fileCount >= 100) {  // Limit to avoid UI freeze
+            openFilesList->addItem(tr("... and more (limited to 100)"));
+            break;
+        }
+    }
+
+    if (fileCount == 0) {
+        openFilesList->addItem(tr("No regular files open"));
+    }
+}
+
+void AttributesDialog::loadNetworkPorts()
+{
+    // Read TCP connections from /proc/net/tcp
+    QStringList protocols = {"tcp", "tcp6", "udp", "udp6"};
+    int portCount = 0;
+
+    for (const QString &proto : protocols) {
+        QFile netFile(QString("/proc/%1/net/%2").arg(pid).arg(proto));
+        if (!netFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+            // Try global /proc/net
+            netFile.setFileName(QString("/proc/net/%1").arg(proto));
+            if (!netFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+                continue;
+            }
+        }
+
+        QTextStream in(&netFile);
+        QString line = in.readLine(); // Skip header
+
+        while (!in.atEnd()) {
+            line = in.readLine();
+            QStringList parts = line.simplified().split(' ');
+
+            if (parts.size() >= 10) {
+                // Parse local address (format: IP:PORT in hex)
+                QString localAddr = parts[1];
+                QStringList addrParts = localAddr.split(':');
+                if (addrParts.size() == 2) {
+                    bool ok;
+                    int port = addrParts[1].toInt(&ok, 16);
+
+                    // Check if this connection belongs to our process
+                    // by checking inode in /proc/[pid]/fd
+                    QString inode = parts[9];
+                    QString fdPath = QString("/proc/%1/fd").arg(pid);
+                    QDir fdDir(fdPath);
+
+                    for (const QString &fd : fdDir.entryList(QDir::NoDotAndDotDot | QDir::AllEntries)) {
+                        QFileInfo fdInfo(fdPath + "/" + fd);
+                        if (fdInfo.isSymLink()) {
+                            QString target = fdInfo.symLinkTarget();
+                            if (target.contains(QString("socket:[%1]").arg(inode))) {
+                                QString state = "";
+                                int stateNum = parts[3].toInt(&ok, 16);
+                                if (proto.startsWith("tcp")) {
+                                    switch(stateNum) {
+                                        case 1: state = "ESTABLISHED"; break;
+                                        case 2: state = "SYN_SENT"; break;
+                                        case 10: state = "LISTEN"; break;
+                                        default: state = QString("STATE_%1").arg(stateNum);
+                                    }
+                                } else {
+                                    state = "UDP";
+                                }
+
+                                QString icon = (proto.startsWith("tcp")) ? "🔌" : "📡";
+                                networkPortsList->addItem(QString("%1 %2 :%3 [%4]")
+                                    .arg(icon)
+                                    .arg(proto.toUpper())
+                                    .arg(port)
+                                    .arg(state));
+                                portCount++;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        netFile.close();
+    }
+
+    if (portCount == 0) {
+        networkPortsList->addItem(tr("No network connections"));
+    }
+}
+
+void AttributesDialog::loadProcessTree()
+{
+    // Find child processes
+    QDir procDir("/proc");
+    QStringList procEntries = procDir.entryList(QDir::Dirs | QDir::NoDotAndDotDot);
+
+    int childCount = 0;
+    for (const QString &entry : procEntries) {
+        bool ok;
+        int childPid = entry.toInt(&ok);
+        if (!ok) continue;
+
+        // Read parent PID from /proc/[pid]/stat
+        QFile statFile(QString("/proc/%1/stat").arg(childPid));
+        if (!statFile.open(QIODevice::ReadOnly | QIODevice::Text)) continue;
+
+        QString statLine = statFile.readLine();
+        statFile.close();
+
+        // Parse stat: pid (comm) state ppid ...
+        int commEnd = statLine.lastIndexOf(')');
+        if (commEnd < 0) continue;
+
+        QStringList afterComm = statLine.mid(commEnd + 2).split(' ');
+        if (afterComm.size() < 2) continue;
+
+        int ppid = afterComm[1].toInt();
+
+        if (ppid == pid) {
+            // This is a child process
+            QString comm = statLine.mid(statLine.indexOf('(') + 1,
+                                         commEnd - statLine.indexOf('(') - 1);
+
+            // Get memory info
+            QFile statusFile(QString("/proc/%1/status").arg(childPid));
+            QString memInfo = "N/A";
+            if (statusFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+                while (!statusFile.atEnd()) {
+                    QString line = statusFile.readLine();
+                    if (line.startsWith("VmRSS:")) {
+                        memInfo = line.mid(6).trimmed();
+                        break;
+                    }
+                }
+                statusFile.close();
+            }
+
+            QTreeWidgetItem *item = new QTreeWidgetItem();
+            item->setText(0, QString::number(childPid));
+            item->setText(1, comm);
+            item->setText(2, "-");  // CPU usage would need sampling
+            item->setText(3, memInfo);
+            processTree->addTopLevelItem(item);
+            childCount++;
+        }
+    }
+
+    if (childCount == 0) {
+        QTreeWidgetItem *item = new QTreeWidgetItem();
+        item->setText(0, "-");
+        item->setText(1, tr("No child processes"));
+        item->setText(2, "-");
+        item->setText(3, "-");
+        processTree->addTopLevelItem(item);
+    }
+
+    processTree->resizeColumnToContents(0);
+    processTree->resizeColumnToContents(1);
 }

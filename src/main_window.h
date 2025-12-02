@@ -67,6 +67,7 @@ public slots:
     void switchTab(int index);
     void switchTheme();
     void switchCompactMode();
+    void showDiskUsageDialog();
 
 private:
     DDialog *killProcessDialog;
@@ -75,6 +76,7 @@ private:
     QAction *killAction;
     QAction *themeAction;
     QAction *compactModeAction;
+    QAction *diskUsageAction;
     QHBoxLayout *layout;
     QMenu *menu;
     QString backgroundColor;

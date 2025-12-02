@@ -553,8 +553,10 @@ void StatusMonitor::initCompactMode()
         compactMemoryMonitor = new CompactMemoryMonitor();
         compactNetworkMonitor = new CompactNetworkMonitor();
         compactDiskMonitor = new CompactDiskMonitor();
+        compactGpuMonitor = new CompactGpuMonitor();
 
         layout->addWidget(compactCpuMonitor, 0, Qt::AlignHCenter);
+        layout->addWidget(compactGpuMonitor, 0, Qt::AlignHCenter);
         layout->addWidget(compactMemoryMonitor, 0, Qt::AlignHCenter);
         layout->addWidget(compactNetworkMonitor, 0, Qt::AlignHCenter);
         layout->addWidget(compactDiskMonitor, 0, Qt::AlignHCenter);
@@ -563,8 +565,10 @@ void StatusMonitor::initCompactMode()
         memoryMonitor = new MemoryMonitor();
         networkMonitor = new NetworkMonitor();
         diskMonitor = new DiskMonitor();
+        gpuMonitor = new GpuMonitor();
 
         layout->addWidget(cpuMonitor, 0, Qt::AlignHCenter);
+        layout->addWidget(gpuMonitor, 0, Qt::AlignHCenter);
         layout->addWidget(memoryMonitor, 0, Qt::AlignHCenter);
         layout->addWidget(networkMonitor, 0, Qt::AlignHCenter);
         layout->addWidget(diskMonitor, 0, Qt::AlignHCenter);
@@ -575,21 +579,25 @@ void StatusMonitor::enableCompactMode()
 {
     if (!isCompactMode) {
         layout->removeWidget(cpuMonitor);
+        layout->removeWidget(gpuMonitor);
         layout->removeWidget(memoryMonitor);
         layout->removeWidget(networkMonitor);
         layout->removeWidget(diskMonitor);
 
         cpuMonitor->deleteLater();
+        gpuMonitor->deleteLater();
         memoryMonitor->deleteLater();
         networkMonitor->deleteLater();
         diskMonitor->deleteLater();
 
         compactCpuMonitor = new CompactCpuMonitor();
+        compactGpuMonitor = new CompactGpuMonitor();
         compactMemoryMonitor = new CompactMemoryMonitor();
         compactNetworkMonitor = new CompactNetworkMonitor();
         compactDiskMonitor = new CompactDiskMonitor();
 
         layout->addWidget(compactCpuMonitor, 0, Qt::AlignHCenter);
+        layout->addWidget(compactGpuMonitor, 0, Qt::AlignHCenter);
         layout->addWidget(compactMemoryMonitor, 0, Qt::AlignHCenter);
         layout->addWidget(compactNetworkMonitor, 0, Qt::AlignHCenter);
         layout->addWidget(compactDiskMonitor, 0, Qt::AlignHCenter);
@@ -602,21 +610,25 @@ void StatusMonitor::disableCompactMode()
 {
     if (isCompactMode) {
         layout->removeWidget(compactCpuMonitor);
+        layout->removeWidget(compactGpuMonitor);
         layout->removeWidget(compactMemoryMonitor);
         layout->removeWidget(compactNetworkMonitor);
         layout->removeWidget(compactDiskMonitor);
 
         compactCpuMonitor->deleteLater();
+        compactGpuMonitor->deleteLater();
         compactMemoryMonitor->deleteLater();
         compactNetworkMonitor->deleteLater();
         compactDiskMonitor->deleteLater();
 
         cpuMonitor = new CpuMonitor();
+        gpuMonitor = new GpuMonitor();
         memoryMonitor = new MemoryMonitor();
         networkMonitor = new NetworkMonitor();
         diskMonitor = new DiskMonitor();
 
         layout->addWidget(cpuMonitor, 0, Qt::AlignHCenter);
+        layout->addWidget(gpuMonitor, 0, Qt::AlignHCenter);
         layout->addWidget(memoryMonitor, 0, Qt::AlignHCenter);
         layout->addWidget(networkMonitor, 0, Qt::AlignHCenter);
         layout->addWidget(diskMonitor, 0, Qt::AlignHCenter);
