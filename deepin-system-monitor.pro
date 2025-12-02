@@ -34,6 +34,8 @@ HEADERS += src/utils.h \
            src/compact_network_monitor.h \
            src/compact_disk_monitor.h \
            src/compact_gpu_monitor.h \
+           src/temperature_monitor.h \
+           src/compact_temperature_monitor.h \
            src/network_traffic_filter.h \
            src/status_monitor.h \
            src/process_manager.h \
@@ -65,6 +67,8 @@ SOURCES += src/main.cpp \
 	   src/compact_network_monitor.cpp \
 	   src/compact_disk_monitor.cpp \
 	   src/compact_gpu_monitor.cpp \
+	   src/temperature_monitor.cpp \
+	   src/compact_temperature_monitor.cpp \
 	   src/network_traffic_filter.cpp \
 	   src/status_monitor.cpp \
            src/process_manager.cpp \

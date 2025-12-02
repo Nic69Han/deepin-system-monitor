@@ -554,24 +554,28 @@ void StatusMonitor::initCompactMode()
         compactNetworkMonitor = new CompactNetworkMonitor();
         compactDiskMonitor = new CompactDiskMonitor();
         compactGpuMonitor = new CompactGpuMonitor();
+        compactTemperatureMonitor = new CompactTemperatureMonitor();
 
         layout->addWidget(compactCpuMonitor, 0, Qt::AlignHCenter);
         layout->addWidget(compactGpuMonitor, 0, Qt::AlignHCenter);
         layout->addWidget(compactMemoryMonitor, 0, Qt::AlignHCenter);
         layout->addWidget(compactNetworkMonitor, 0, Qt::AlignHCenter);
         layout->addWidget(compactDiskMonitor, 0, Qt::AlignHCenter);
+        layout->addWidget(compactTemperatureMonitor, 0, Qt::AlignHCenter);
     } else {
         cpuMonitor = new CpuMonitor();
         memoryMonitor = new MemoryMonitor();
         networkMonitor = new NetworkMonitor();
         diskMonitor = new DiskMonitor();
         gpuMonitor = new GpuMonitor();
+        temperatureMonitor = new TemperatureMonitor();
 
         layout->addWidget(cpuMonitor, 0, Qt::AlignHCenter);
         layout->addWidget(gpuMonitor, 0, Qt::AlignHCenter);
         layout->addWidget(memoryMonitor, 0, Qt::AlignHCenter);
         layout->addWidget(networkMonitor, 0, Qt::AlignHCenter);
         layout->addWidget(diskMonitor, 0, Qt::AlignHCenter);
+        layout->addWidget(temperatureMonitor, 0, Qt::AlignHCenter);
     }
 }
 
@@ -583,24 +587,28 @@ void StatusMonitor::enableCompactMode()
         layout->removeWidget(memoryMonitor);
         layout->removeWidget(networkMonitor);
         layout->removeWidget(diskMonitor);
+        layout->removeWidget(temperatureMonitor);
 
         cpuMonitor->deleteLater();
         gpuMonitor->deleteLater();
         memoryMonitor->deleteLater();
         networkMonitor->deleteLater();
         diskMonitor->deleteLater();
+        temperatureMonitor->deleteLater();
 
         compactCpuMonitor = new CompactCpuMonitor();
         compactGpuMonitor = new CompactGpuMonitor();
         compactMemoryMonitor = new CompactMemoryMonitor();
         compactNetworkMonitor = new CompactNetworkMonitor();
         compactDiskMonitor = new CompactDiskMonitor();
+        compactTemperatureMonitor = new CompactTemperatureMonitor();
 
         layout->addWidget(compactCpuMonitor, 0, Qt::AlignHCenter);
         layout->addWidget(compactGpuMonitor, 0, Qt::AlignHCenter);
         layout->addWidget(compactMemoryMonitor, 0, Qt::AlignHCenter);
         layout->addWidget(compactNetworkMonitor, 0, Qt::AlignHCenter);
         layout->addWidget(compactDiskMonitor, 0, Qt::AlignHCenter);
+        layout->addWidget(compactTemperatureMonitor, 0, Qt::AlignHCenter);
     }
 
     isCompactMode = true;
@@ -614,24 +622,28 @@ void StatusMonitor::disableCompactMode()
         layout->removeWidget(compactMemoryMonitor);
         layout->removeWidget(compactNetworkMonitor);
         layout->removeWidget(compactDiskMonitor);
+        layout->removeWidget(compactTemperatureMonitor);
 
         compactCpuMonitor->deleteLater();
         compactGpuMonitor->deleteLater();
         compactMemoryMonitor->deleteLater();
         compactNetworkMonitor->deleteLater();
         compactDiskMonitor->deleteLater();
+        compactTemperatureMonitor->deleteLater();
 
         cpuMonitor = new CpuMonitor();
         gpuMonitor = new GpuMonitor();
         memoryMonitor = new MemoryMonitor();
         networkMonitor = new NetworkMonitor();
         diskMonitor = new DiskMonitor();
+        temperatureMonitor = new TemperatureMonitor();
 
         layout->addWidget(cpuMonitor, 0, Qt::AlignHCenter);
         layout->addWidget(gpuMonitor, 0, Qt::AlignHCenter);
         layout->addWidget(memoryMonitor, 0, Qt::AlignHCenter);
         layout->addWidget(networkMonitor, 0, Qt::AlignHCenter);
         layout->addWidget(diskMonitor, 0, Qt::AlignHCenter);
+        layout->addWidget(temperatureMonitor, 0, Qt::AlignHCenter);
     }
 
     isCompactMode = false;

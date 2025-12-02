@@ -39,6 +39,8 @@
 #include "compact_network_monitor.h"
 #include "gpu_monitor.h"
 #include "compact_gpu_monitor.h"
+#include "temperature_monitor.h"
+#include "compact_temperature_monitor.h"
 #include <QMap>
 #include <QPointF>
 #include <QTimer>
@@ -109,6 +111,8 @@ private:
     CompactMemoryMonitor *compactMemoryMonitor;
     GpuMonitor *gpuMonitor;
     CompactGpuMonitor *compactGpuMonitor;
+    TemperatureMonitor *temperatureMonitor;
+    CompactTemperatureMonitor *compactTemperatureMonitor;
     QMap<QString, int> *wineApplicationDesktopMaps;
     QMap<int, QString> *wineServerDesktopMaps;
     QMap<int, double> *processCpuPercents;
