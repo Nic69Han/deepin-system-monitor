@@ -37,6 +37,7 @@ public:
 private slots:
     void saveSettings();
     void testNotification();
+    void updateTheme(const QString &theme);
 
 private:
     void setupUI();

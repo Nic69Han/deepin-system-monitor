@@ -17,6 +17,7 @@
 #include <QProcess>
 #include <QDateTime>
 #include <QStandardPaths>
+#include <dthememanager.h>
 
 QSettings *AlertSettingsDialog::alertSettings = nullptr;
 QHash<QString, qint64> AlertSettingsDialog::lastNotificationTime;
@@ -28,6 +29,11 @@ AlertSettingsDialog::AlertSettingsDialog(QWidget *parent)
     setFixedSize(450, 420);
     setupUI();
     loadSettings();
+
+    // Connect to theme changes
+    connect(Dtk::Widget::DThemeManager::instance(), &Dtk::Widget::DThemeManager::themeChanged,
+            this, &AlertSettingsDialog::updateTheme);
+    updateTheme(Dtk::Widget::DThemeManager::instance()->theme());
 }
 
 AlertSettingsDialog::~AlertSettingsDialog()
@@ -238,3 +244,38 @@ void AlertSettingsDialog::checkAndNotify(const QString &type, double currentValu
     });
 }
 
+void AlertSettingsDialog::updateTheme(const QString &theme)
+{
+    bool isDark = (theme == "dark");
+    QString textColor = isDark ? "#FFFFFF" : "#000000";
+    QString bgColor = isDark ? "#252525" : "#FFFFFF";
+    QString borderColor = isDark ? "#444444" : "#DDDDDD";
+    QString labelColor = isDark ? "#CCCCCC" : "#666666";
+
+    QString groupBoxStyle = QString(
+        "QGroupBox { "
+        "  background-color: %1; "
+        "  border: 1px solid %2; "
+        "  border-radius: 4px; "
+        "  margin-top: 8px; "
+        "  padding-top: 8px; "
+        "  color: %3; "
+        "} "
+        "QGroupBox::title { "
+        "  subcontrol-origin: margin; "
+        "  left: 10px; "
+        "  padding: 0 3px; "
+        "  color: %3; "
+        "}"
+    ).arg(bgColor).arg(borderColor).arg(textColor);
+
+    QString widgetStyle = QString(
+        "QLabel { color: %1; } "
+        "QCheckBox { color: %1; } "
+        "QSpinBox { background: %2; color: %1; border: 1px solid %3; } "
+        "QPushButton { background: %2; color: %1; border: 1px solid %3; padding: 5px 15px; border-radius: 3px; } "
+        "QPushButton:hover { background: %3; }"
+    ).arg(textColor).arg(bgColor).arg(borderColor);
+
+    setStyleSheet(groupBoxStyle + widgetStyle);
+}

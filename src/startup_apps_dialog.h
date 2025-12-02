@@ -46,6 +46,7 @@ private slots:
     void removeApp();
     void addApp();
     void onCellChanged(int row, int column);
+    void updateTheme(const QString &theme);
 
 private:
     void setupUI();

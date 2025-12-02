@@ -47,6 +47,7 @@ private slots:
     void enableService();
     void disableService();
     void filterByType(int index);
+    void updateTheme(const QString &theme);
 
 private:
     void setupUI();

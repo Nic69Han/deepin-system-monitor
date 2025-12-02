@@ -36,6 +36,7 @@ private slots:
     void onCpuSliderChanged(int value);
     void onMemorySliderChanged(int value);
     void onNiceChanged(int value);
+    void updateTheme(const QString &theme);
 
 private:
     void setupUI();

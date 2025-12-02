@@ -16,13 +16,20 @@
 #include <QPainter>
 #include <QDateTime>
 #include <QPainterPath>
+#include <dthememanager.h>
 
 // HistoryGraphWidget implementation
 HistoryGraphWidget::HistoryGraphWidget(QWidget *parent)
-    : QWidget(parent), maxPoints(60), maxValue(100.0)
+    : QWidget(parent), maxPoints(60), maxValue(100.0), darkTheme(true)
 {
     setMinimumSize(280, 100);
     graphColor = QColor(0, 150, 136);
+}
+
+void HistoryGraphWidget::setDarkTheme(bool dark)
+{
+    darkTheme = dark;
+    update();
 }
 
 void HistoryGraphWidget::addDataPoint(double value)
@@ -88,22 +95,26 @@ void HistoryGraphWidget::paintEvent(QPaintEvent *)
     int graphTop = 20;
     int graphHeight = h - graphTop - margin;
     
-    // Background
-    painter.fillRect(rect(), QColor(40, 40, 40));
-    
+    // Background - theme aware
+    QColor bgColor = darkTheme ? QColor(40, 40, 40) : QColor(245, 245, 245);
+    QColor textColor = darkTheme ? Qt::white : Qt::black;
+    QColor gridColor = darkTheme ? QColor(60, 60, 60) : QColor(200, 200, 200);
+
+    painter.fillRect(rect(), bgColor);
+
     // Title
-    painter.setPen(Qt::white);
+    painter.setPen(textColor);
     painter.setFont(QFont("Sans", 9, QFont::Bold));
     painter.drawText(margin, 15, title);
-    
+
     // Current value
     if (!dataPoints.isEmpty()) {
         QString valueStr = QString::number(dataPoints.last().value, 'f', 1) + " " + unit;
         painter.drawText(w - 80, 15, valueStr);
     }
-    
+
     // Grid
-    painter.setPen(QColor(60, 60, 60));
+    painter.setPen(gridColor);
     for (int i = 0; i <= 4; i++) {
         int y = graphTop + (graphHeight * i / 4);
         painter.drawLine(margin, y, w - margin, y);
@@ -144,11 +155,16 @@ void HistoryGraphWidget::paintEvent(QPaintEvent *)
 
 // PerformanceHistoryDialog implementation
 PerformanceHistoryDialog::PerformanceHistoryDialog(QWidget *parent)
-    : DDialog(parent), currentMaxPoints(60)
+    : DDialog(parent), currentMaxPoints(60), isDarkTheme(true)
 {
     setWindowTitle(tr("Performance History"));
     setFixedSize(640, 520);
     setupUI();
+
+    // Connect to theme changes
+    connect(Dtk::Widget::DThemeManager::instance(), &Dtk::Widget::DThemeManager::themeChanged,
+            this, &PerformanceHistoryDialog::updateTheme);
+    updateTheme(Dtk::Widget::DThemeManager::instance()->theme());
 }
 
 PerformanceHistoryDialog::~PerformanceHistoryDialog()
@@ -276,3 +292,28 @@ void PerformanceHistoryDialog::updateDiskHistory(double readKB, double writeKB)
     diskWriteGraph->addDataPoint(writeKB);
 }
 
+void PerformanceHistoryDialog::updateTheme(const QString &theme)
+{
+    isDarkTheme = (theme == "dark");
+    QString textColor = isDarkTheme ? "#FFFFFF" : "#000000";
+    QString bgColor = isDarkTheme ? "#252525" : "#FFFFFF";
+    QString borderColor = isDarkTheme ? "#444444" : "#DDDDDD";
+
+    QString widgetStyle = QString(
+        "QLabel { color: %1; } "
+        "QComboBox { background: %2; color: %1; border: 1px solid %3; padding: 3px; } "
+        "QComboBox QAbstractItemView { background: %2; color: %1; } "
+        "QPushButton { background: %2; color: %1; border: 1px solid %3; padding: 5px 15px; border-radius: 3px; } "
+        "QPushButton:hover { background: %3; }"
+    ).arg(textColor).arg(bgColor).arg(borderColor);
+
+    setStyleSheet(widgetStyle);
+
+    // Update graph backgrounds
+    cpuGraph->setDarkTheme(isDarkTheme);
+    memoryGraph->setDarkTheme(isDarkTheme);
+    networkDownGraph->setDarkTheme(isDarkTheme);
+    networkUpGraph->setDarkTheme(isDarkTheme);
+    diskReadGraph->setDarkTheme(isDarkTheme);
+    diskWriteGraph->setDarkTheme(isDarkTheme);
+}

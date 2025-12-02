@@ -19,6 +19,7 @@
 #include <QDebug>
 #include <sys/resource.h>
 #include <unistd.h>
+#include <dthememanager.h>
 
 ResourceLimitDialog::ResourceLimitDialog(int pid, const QString &processName, QWidget *parent)
     : DDialog(parent), m_pid(pid), m_processName(processName)
@@ -27,6 +28,11 @@ ResourceLimitDialog::ResourceLimitDialog(int pid, const QString &processName, QW
     setFixedSize(450, 400);
     setupUI();
     loadCurrentLimits();
+
+    // Connect to theme changes
+    connect(Dtk::Widget::DThemeManager::instance(), &Dtk::Widget::DThemeManager::themeChanged,
+            this, &ResourceLimitDialog::updateTheme);
+    updateTheme(Dtk::Widget::DThemeManager::instance()->theme());
 }
 
 ResourceLimitDialog::~ResourceLimitDialog()
@@ -267,3 +273,40 @@ bool ResourceLimitDialog::setMemoryLimit(int megabytes)
     return false;
 }
 
+void ResourceLimitDialog::updateTheme(const QString &theme)
+{
+    bool isDark = (theme == "dark");
+    QString textColor = isDark ? "#FFFFFF" : "#000000";
+    QString bgColor = isDark ? "#252525" : "#FFFFFF";
+    QString borderColor = isDark ? "#444444" : "#DDDDDD";
+
+    QString groupBoxStyle = QString(
+        "QGroupBox { "
+        "  background-color: %1; "
+        "  border: 1px solid %2; "
+        "  border-radius: 4px; "
+        "  margin-top: 8px; "
+        "  padding-top: 8px; "
+        "  color: %3; "
+        "} "
+        "QGroupBox::title { "
+        "  subcontrol-origin: margin; "
+        "  left: 10px; "
+        "  padding: 0 3px; "
+        "  color: %3; "
+        "}"
+    ).arg(bgColor).arg(borderColor).arg(textColor);
+
+    QString widgetStyle = QString(
+        "QLabel { color: %1; } "
+        "QCheckBox { color: %1; } "
+        "QSlider { background: transparent; } "
+        "QSpinBox { background: %2; color: %1; border: 1px solid %3; } "
+        "QComboBox { background: %2; color: %1; border: 1px solid %3; } "
+        "QComboBox QAbstractItemView { background: %2; color: %1; } "
+        "QPushButton { background: %2; color: %1; border: 1px solid %3; padding: 5px 15px; border-radius: 3px; } "
+        "QPushButton:hover { background: %3; }"
+    ).arg(textColor).arg(bgColor).arg(borderColor);
+
+    setStyleSheet(groupBoxStyle + widgetStyle);
+}

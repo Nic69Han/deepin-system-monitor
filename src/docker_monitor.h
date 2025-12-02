@@ -49,6 +49,7 @@ private slots:
     void onRemoveContainer();
     void onViewLogs();
     void onSelectionChanged();
+    void updateTheme(const QString &theme);
 
 private:
     void setupUI();

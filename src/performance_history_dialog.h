@@ -39,6 +39,7 @@ public:
     void setTitle(const QString &title);
     void setUnit(const QString &unit);
     void clear();
+    void setDarkTheme(bool dark);
 
 protected:
     void paintEvent(QPaintEvent *event) override;
@@ -50,6 +51,7 @@ private:
     QString title;
     QString unit;
     double maxValue;
+    bool darkTheme;
 };
 
 class PerformanceHistoryDialog : public DDialog
@@ -68,6 +70,7 @@ public:
 private slots:
     void onTimeRangeChanged(int index);
     void clearHistory();
+    void updateTheme(const QString &theme);
 
 private:
     void setupUI();
@@ -78,12 +81,13 @@ private:
     HistoryGraphWidget *networkUpGraph;
     HistoryGraphWidget *diskReadGraph;
     HistoryGraphWidget *diskWriteGraph;
-    
+
     QComboBox *timeRangeCombo;
     QPushButton *clearBtn;
     QLabel *statusLabel;
-    
+
     int currentMaxPoints;
+    bool isDarkTheme;
 };
 
 #endif

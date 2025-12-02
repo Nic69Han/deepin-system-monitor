@@ -15,6 +15,7 @@
 #include <QHeaderView>
 #include <QMessageBox>
 #include <QTextEdit>
+#include <dthememanager.h>
 
 DockerMonitorDialog::DockerMonitorDialog(QWidget *parent)
     : DDialog(parent)
@@ -22,12 +23,17 @@ DockerMonitorDialog::DockerMonitorDialog(QWidget *parent)
     setWindowTitle(tr("Docker Containers"));
     setFixedSize(800, 500);
     setupUI();
-    
+
     refreshTimer = new QTimer(this);
     connect(refreshTimer, &QTimer::timeout, this, &DockerMonitorDialog::refreshContainers);
     refreshTimer->start(5000);
-    
+
     refreshContainers();
+
+    // Connect to theme changes
+    connect(Dtk::Widget::DThemeManager::instance(), &Dtk::Widget::DThemeManager::themeChanged,
+            this, &DockerMonitorDialog::updateTheme);
+    updateTheme(Dtk::Widget::DThemeManager::instance()->theme());
 }
 
 DockerMonitorDialog::~DockerMonitorDialog()
@@ -295,3 +301,28 @@ void DockerMonitorDialog::onViewLogs()
     }
 }
 
+void DockerMonitorDialog::updateTheme(const QString &theme)
+{
+    bool isDark = (theme == "dark");
+    QString textColor = isDark ? "#FFFFFF" : "#000000";
+    QString bgColor = isDark ? "#252525" : "#FFFFFF";
+    QString borderColor = isDark ? "#444444" : "#DDDDDD";
+    QString headerBg = isDark ? "#333333" : "#F0F0F0";
+    QString altRowBg = isDark ? "#2A2A2A" : "#FAFAFA";
+
+    QString tableStyle = QString(
+        "QTableWidget { background: %1; color: %2; gridline-color: %3; border: 1px solid %3; } "
+        "QTableWidget::item { padding: 5px; } "
+        "QTableWidget::item:selected { background: #2ca7f8; color: white; } "
+        "QHeaderView::section { background: %4; color: %2; border: 1px solid %3; padding: 5px; }"
+    ).arg(bgColor).arg(textColor).arg(borderColor).arg(headerBg);
+
+    QString widgetStyle = QString(
+        "QLabel { color: %1; } "
+        "QPushButton { background: %2; color: %1; border: 1px solid %3; padding: 5px 15px; border-radius: 3px; } "
+        "QPushButton:hover { background: %3; } "
+        "QPushButton:disabled { color: #888888; }"
+    ).arg(textColor).arg(bgColor).arg(borderColor);
+
+    setStyleSheet(tableStyle + widgetStyle);
+}
