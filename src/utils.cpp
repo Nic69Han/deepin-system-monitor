@@ -121,18 +121,41 @@ namespace Utils {
 
     QList<int> getTrayWindows()
     {
+        QList<int> xids;
+
         QDBusInterface busInterface("com.deepin.dde.TrayManager",
                                     "/com/deepin/dde/TrayManager",
                                     "org.freedesktop.DBus.Properties",
                                     QDBusConnection::sessionBus());
+
+        // Check if the D-Bus interface is valid (Deepin-specific service)
+        if (!busInterface.isValid()) {
+            return xids;  // Return empty list on non-Deepin systems
+        }
+
         QDBusMessage reply = busInterface.call("Get",
                                                "com.deepin.dde.TrayManager",
                                                "TrayIcons");
+
+        // Check if the reply is valid
+        if (reply.type() != QDBusMessage::ReplyMessage || reply.arguments().isEmpty()) {
+            return xids;  // Return empty list if call failed
+        }
+
         QVariant v = reply.arguments().first();
-        const QDBusArgument &argument = v.value<QDBusVariant>().variant().value<QDBusArgument>();
+        if (!v.isValid()) {
+            return xids;
+        }
+
+        QDBusVariant dbusVariant = v.value<QDBusVariant>();
+        QVariant innerVariant = dbusVariant.variant();
+        if (!innerVariant.isValid() || !innerVariant.canConvert<QDBusArgument>()) {
+            return xids;
+        }
+
+        const QDBusArgument &argument = innerVariant.value<QDBusArgument>();
 
         argument.beginArray();
-        QList<int> xids;
         while (!argument.atEnd()) {
             int xid;
 
