@@ -68,6 +68,7 @@ public slots:
     void switchTheme();
     void switchCompactMode();
     void showDiskUsageDialog();
+    void showSystemdServiceDialog();
 
 private:
     DDialog *killProcessDialog;
@@ -77,6 +78,7 @@ private:
     QAction *themeAction;
     QAction *compactModeAction;
     QAction *diskUsageAction;
+    QAction *systemdServiceAction;
     QHBoxLayout *layout;
     QMenu *menu;
     QString backgroundColor;

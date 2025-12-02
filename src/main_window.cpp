@@ -26,6 +26,7 @@
 #include "dwindowmanagerhelper.h"
 #include "main_window.h"
 #include "disk_usage_dialog.h"
+#include "systemd_service_dialog.h"
 #include <DTitlebar>
 #include <QApplication>
 #include <QDebug>
@@ -73,10 +74,14 @@ MainWindow::MainWindow(DMainWindow *parent) : DMainWindow(parent)
         connect(compactModeAction, &QAction::triggered, this, &MainWindow::switchCompactMode);
         diskUsageAction = new QAction(tr("Disk Usage Analyzer"), this);
         connect(diskUsageAction, &QAction::triggered, this, &MainWindow::showDiskUsageDialog);
+        systemdServiceAction = new QAction(tr("System Services"), this);
+        connect(systemdServiceAction, &QAction::triggered, this, &MainWindow::showSystemdServiceDialog);
         menu->addAction(killAction);
         menu->addAction(themeAction);
         menu->addAction(compactModeAction);
+        menu->addSeparator();
         menu->addAction(diskUsageAction);
+        menu->addAction(systemdServiceAction);
         menu->addSeparator();
 
         initTheme();
@@ -420,5 +425,11 @@ void MainWindow::showDiskUsageDialog()
 {
     QString homePath = QDir::homePath();
     DiskUsageDialog *dialog = new DiskUsageDialog(this, homePath);
+    dialog->show();
+}
+
+void MainWindow::showSystemdServiceDialog()
+{
+    SystemdServiceDialog *dialog = new SystemdServiceDialog(this);
     dialog->show();
 }
