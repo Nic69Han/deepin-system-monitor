@@ -29,6 +29,7 @@
 #include "systemd_service_dialog.h"
 #include "startup_apps_dialog.h"
 #include "alert_settings_dialog.h"
+#include "performance_history_dialog.h"
 #include <DTitlebar>
 #include <QApplication>
 #include <QDebug>
@@ -82,6 +83,8 @@ MainWindow::MainWindow(DMainWindow *parent) : DMainWindow(parent)
         connect(startupAppsAction, &QAction::triggered, this, &MainWindow::showStartupAppsDialog);
         alertSettingsAction = new QAction(tr("Alert Settings"), this);
         connect(alertSettingsAction, &QAction::triggered, this, &MainWindow::showAlertSettingsDialog);
+        performanceHistoryAction = new QAction(tr("Performance History"), this);
+        connect(performanceHistoryAction, &QAction::triggered, this, &MainWindow::showPerformanceHistoryDialog);
         menu->addAction(killAction);
         menu->addAction(themeAction);
         menu->addAction(compactModeAction);
@@ -90,6 +93,7 @@ MainWindow::MainWindow(DMainWindow *parent) : DMainWindow(parent)
         menu->addAction(systemdServiceAction);
         menu->addAction(startupAppsAction);
         menu->addAction(alertSettingsAction);
+        menu->addAction(performanceHistoryAction);
         menu->addSeparator();
 
         initTheme();
@@ -451,5 +455,11 @@ void MainWindow::showStartupAppsDialog()
 void MainWindow::showAlertSettingsDialog()
 {
     AlertSettingsDialog *dialog = new AlertSettingsDialog(this);
+    dialog->show();
+}
+
+void MainWindow::showPerformanceHistoryDialog()
+{
+    PerformanceHistoryDialog *dialog = new PerformanceHistoryDialog(this);
     dialog->show();
 }

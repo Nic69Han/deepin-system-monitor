@@ -53,6 +53,7 @@ HEADERS += src/utils.h \
 	   src/systemd_service_dialog.h \
 	   src/startup_apps_dialog.h \
 	   src/alert_settings_dialog.h \
+	   src/performance_history_dialog.h \
 	   src/constant.h \
 	   src/settings.h \
 	   src/chinese2pinyin.h \
@@ -88,6 +89,7 @@ SOURCES += src/main.cpp \
 	   src/systemd_service_dialog.cpp \
 	   src/startup_apps_dialog.cpp \
 	   src/alert_settings_dialog.cpp \
+	   src/performance_history_dialog.cpp \
 	   src/chinese2pinyin.cpp \
 	   src/main_window.cpp \
 	   src/settings.cpp

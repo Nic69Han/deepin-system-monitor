@@ -71,6 +71,7 @@ public slots:
     void showSystemdServiceDialog();
     void showStartupAppsDialog();
     void showAlertSettingsDialog();
+    void showPerformanceHistoryDialog();
 
 private:
     DDialog *killProcessDialog;
@@ -83,6 +84,7 @@ private:
     QAction *systemdServiceAction;
     QAction *startupAppsAction;
     QAction *alertSettingsAction;
+    QAction *performanceHistoryAction;
     QHBoxLayout *layout;
     QMenu *menu;
     QString backgroundColor;
