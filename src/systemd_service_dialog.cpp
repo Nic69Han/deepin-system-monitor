@@ -15,37 +15,77 @@
 #include <QHeaderView>
 #include <QProcess>
 #include <QMessageBox>
+#include <QPainter>
 #include <dthememanager.h>
 
 SystemdServiceDialog::SystemdServiceDialog(QWidget *parent)
-    : DDialog(parent)
+    : DAbstractDialog(parent), isDarkTheme(false)
 {
+    setAttribute(Qt::WA_DeleteOnClose, true);
     setWindowTitle(tr("System Services"));
     setFixedSize(750, 550);
-    setupUI();
-    loadServices();
 
     // Connect to theme changes
     connect(Dtk::Widget::DThemeManager::instance(), &Dtk::Widget::DThemeManager::themeChanged,
             this, &SystemdServiceDialog::updateTheme);
-    updateTheme(Dtk::Widget::DThemeManager::instance()->theme());
+    isDarkTheme = (Dtk::Widget::DThemeManager::instance()->theme() == "dark");
+
+    setupUI();
+    loadServices();
+    applyThemeStyle();
 }
 
 SystemdServiceDialog::~SystemdServiceDialog()
 {
 }
 
+void SystemdServiceDialog::paintEvent(QPaintEvent *)
+{
+    QPainter painter(this);
+    painter.setRenderHint(QPainter::Antialiasing);
+
+    QPainterPath path;
+    path.addRoundedRect(QRectF(rect()), 8, 8);
+    painter.setOpacity(1);
+    painter.fillPath(path, isDarkTheme ? QColor("#252525") : QColor("#F8F8F8"));
+}
+
 void SystemdServiceDialog::setupUI()
 {
-    QWidget *contentWidget = new QWidget(this);
-    QVBoxLayout *mainLayout = new QVBoxLayout(contentWidget);
-    mainLayout->setContentsMargins(10, 10, 10, 10);
+    QVBoxLayout *mainLayout = new QVBoxLayout(this);
+    mainLayout->setContentsMargins(1, 1, 1, 1);
+    mainLayout->setSpacing(0);
+
+    // Title bar
+    QWidget *titleBar = new QWidget();
+    titleBar->setFixedHeight(40);
+    QHBoxLayout *titleLayout = new QHBoxLayout(titleBar);
+    titleLayout->setContentsMargins(15, 0, 5, 0);
+
+    titleLabel = new QLabel(tr("System Services"));
+    titleLabel->setStyleSheet("font-size: 14px; font-weight: bold;");
+
+    closeButton = new DWindowCloseButton();
+    closeButton->setFixedSize(27, 23);
+    connect(closeButton, &DWindowCloseButton::clicked, this, &DAbstractDialog::close);
+
+    titleLayout->addWidget(titleLabel);
+    titleLayout->addStretch();
+    titleLayout->addWidget(closeButton);
+    mainLayout->addWidget(titleBar);
+
+    // Content area
+    QWidget *contentWidget = new QWidget();
+    QVBoxLayout *contentLayout = new QVBoxLayout(contentWidget);
+    contentLayout->setContentsMargins(15, 10, 15, 15);
+    contentLayout->setSpacing(10);
 
     // Top bar: search and filter
     QHBoxLayout *topLayout = new QHBoxLayout();
     searchEdit = new QLineEdit();
     searchEdit->setPlaceholderText(tr("Search services..."));
     searchEdit->setFixedWidth(200);
+    searchEdit->setFixedHeight(30);
     connect(searchEdit, &QLineEdit::textChanged, this, &SystemdServiceDialog::filterServices);
 
     filterCombo = new QComboBox();
@@ -53,17 +93,19 @@ void SystemdServiceDialog::setupUI()
     filterCombo->addItem(tr("Running"), "running");
     filterCombo->addItem(tr("Stopped"), "dead");
     filterCombo->addItem(tr("Failed"), "failed");
-    connect(filterCombo, QOverload<int>::of(&QComboBox::currentIndexChanged), 
+    filterCombo->setFixedHeight(30);
+    connect(filterCombo, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &SystemdServiceDialog::filterByType);
 
     refreshBtn = new QPushButton(tr("Refresh"));
+    refreshBtn->setFixedHeight(30);
     connect(refreshBtn, &QPushButton::clicked, this, &SystemdServiceDialog::refreshServices);
 
     topLayout->addWidget(searchEdit);
     topLayout->addWidget(filterCombo);
     topLayout->addStretch();
     topLayout->addWidget(refreshBtn);
-    mainLayout->addLayout(topLayout);
+    contentLayout->addLayout(topLayout);
 
     // Service table
     serviceTable = new QTableWidget();
@@ -77,8 +119,9 @@ void SystemdServiceDialog::setupUI()
     serviceTable->setSelectionMode(QAbstractItemView::SingleSelection);
     serviceTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
     serviceTable->verticalHeader()->setVisible(false);
+    serviceTable->setAlternatingRowColors(true);
     connect(serviceTable, &QTableWidget::itemSelectionChanged, this, &SystemdServiceDialog::onServiceSelected);
-    mainLayout->addWidget(serviceTable);
+    contentLayout->addWidget(serviceTable);
 
     // Action buttons
     QHBoxLayout *btnLayout = new QHBoxLayout();
@@ -87,6 +130,12 @@ void SystemdServiceDialog::setupUI()
     restartBtn = new QPushButton(tr("Restart"));
     enableBtn = new QPushButton(tr("Enable"));
     disableBtn = new QPushButton(tr("Disable"));
+
+    startBtn->setFixedHeight(30);
+    stopBtn->setFixedHeight(30);
+    restartBtn->setFixedHeight(30);
+    enableBtn->setFixedHeight(30);
+    disableBtn->setFixedHeight(30);
 
     startBtn->setEnabled(false);
     stopBtn->setEnabled(false);
@@ -107,13 +156,13 @@ void SystemdServiceDialog::setupUI()
     btnLayout->addWidget(enableBtn);
     btnLayout->addWidget(disableBtn);
     btnLayout->addStretch();
-    mainLayout->addLayout(btnLayout);
+    contentLayout->addLayout(btnLayout);
 
     // Status label
     statusLabel = new QLabel();
-    mainLayout->addWidget(statusLabel);
+    contentLayout->addWidget(statusLabel);
 
-    addContent(contentWidget);
+    mainLayout->addWidget(contentWidget);
 }
 
 void SystemdServiceDialog::loadServices()
@@ -245,28 +294,42 @@ void SystemdServiceDialog::disableService()
 
 void SystemdServiceDialog::updateTheme(const QString &theme)
 {
-    bool isDark = (theme == "dark");
-    QString textColor = isDark ? "#FFFFFF" : "#000000";
-    QString bgColor = isDark ? "#252525" : "#FFFFFF";
-    QString borderColor = isDark ? "#444444" : "#DDDDDD";
-    QString headerBg = isDark ? "#333333" : "#F0F0F0";
+    isDarkTheme = (theme == "dark");
+    applyThemeStyle();
+    update();  // Force repaint
+}
 
-    QString tableStyle = QString(
-        "QTableWidget { background: %1; color: %2; gridline-color: %3; border: 1px solid %3; } "
-        "QTableWidget::item { padding: 5px; } "
-        "QTableWidget::item:selected { background: #2ca7f8; color: white; } "
-        "QHeaderView::section { background: %4; color: %2; border: 1px solid %3; padding: 5px; }"
-    ).arg(bgColor).arg(textColor).arg(borderColor).arg(headerBg);
+void SystemdServiceDialog::applyThemeStyle()
+{
+    QString textColor = isDarkTheme ? "#FFFFFF" : "#303030";
+    QString bgColor = isDarkTheme ? "#2D2D2D" : "#FFFFFF";
+    QString borderColor = isDarkTheme ? "#444444" : "#CCCCCC";
+    QString headerBg = isDarkTheme ? "#3A3A3A" : "#E8E8E8";
+    QString altRowColor = isDarkTheme ? "#333333" : "#F5F5F5";
+    QString inputBg = isDarkTheme ? "#3A3A3A" : "#FFFFFF";
 
-    QString widgetStyle = QString(
-        "QLabel { color: %1; } "
-        "QLineEdit { background: %2; color: %1; border: 1px solid %3; padding: 5px; } "
-        "QComboBox { background: %2; color: %1; border: 1px solid %3; padding: 3px; } "
-        "QComboBox QAbstractItemView { background: %2; color: %1; } "
-        "QPushButton { background: %2; color: %1; border: 1px solid %3; padding: 5px 15px; border-radius: 3px; } "
-        "QPushButton:hover { background: %3; } "
-        "QPushButton:disabled { color: #888888; }"
-    ).arg(textColor).arg(bgColor).arg(borderColor);
+    // Title label
+    titleLabel->setStyleSheet(QString("QLabel { color: %1; background: transparent; font-size: 14px; font-weight: bold; }").arg(textColor));
 
-    setStyleSheet(tableStyle + widgetStyle);
+    // Close button theme
+    Dtk::Widget::DThemeManager::instance()->setTheme(closeButton, isDarkTheme ? "dark" : "light");
+
+    QString style = QString(
+        "QTableWidget { background-color: %1; color: %2; gridline-color: %3; border: 1px solid %3; alternate-background-color: %5; } "
+        "QTableWidget::item { padding: 5px; color: %2; } "
+        "QTableWidget::item:selected { background-color: #2ca7f8; color: white; } "
+        "QHeaderView::section { background-color: %4; color: %2; border: 1px solid %3; padding: 5px; font-weight: bold; } "
+        "QLabel { color: %2; background-color: transparent; } "
+        "QLineEdit { background-color: %6; color: %2; border: 1px solid %3; padding: 5px; border-radius: 4px; } "
+        "QComboBox { background-color: %6; color: %2; border: 1px solid %3; padding: 5px; border-radius: 4px; } "
+        "QComboBox QAbstractItemView { background-color: %1; color: %2; selection-background-color: #2ca7f8; } "
+        "QComboBox::drop-down { border: none; width: 20px; } "
+        "QComboBox::down-arrow { image: none; border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 5px solid %2; } "
+        "QPushButton { background-color: %4; color: %2; border: 1px solid %3; padding: 5px 15px; border-radius: 4px; } "
+        "QPushButton:hover { background-color: #2ca7f8; color: white; border-color: #2ca7f8; } "
+        "QPushButton:pressed { background-color: #1a8ddb; } "
+        "QPushButton:disabled { background-color: %4; color: #888888; border-color: %3; }"
+    ).arg(bgColor).arg(textColor).arg(borderColor).arg(headerBg).arg(altRowColor).arg(inputBg);
+
+    setStyleSheet(style);
 }

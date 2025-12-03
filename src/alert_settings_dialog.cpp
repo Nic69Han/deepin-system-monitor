@@ -17,35 +17,73 @@
 #include <QProcess>
 #include <QDateTime>
 #include <QStandardPaths>
+#include <QPainter>
 #include <dthememanager.h>
 
 QSettings *AlertSettingsDialog::alertSettings = nullptr;
 QHash<QString, qint64> AlertSettingsDialog::lastNotificationTime;
 
 AlertSettingsDialog::AlertSettingsDialog(QWidget *parent)
-    : DDialog(parent)
+    : DAbstractDialog(parent), isDarkTheme(false)
 {
+    setAttribute(Qt::WA_DeleteOnClose, true);
     setWindowTitle(tr("Alert Settings"));
-    setFixedSize(450, 420);
-    setupUI();
-    loadSettings();
+    setFixedSize(450, 480);
 
     // Connect to theme changes
     connect(Dtk::Widget::DThemeManager::instance(), &Dtk::Widget::DThemeManager::themeChanged,
             this, &AlertSettingsDialog::updateTheme);
-    updateTheme(Dtk::Widget::DThemeManager::instance()->theme());
+    isDarkTheme = (Dtk::Widget::DThemeManager::instance()->theme() == "dark");
+
+    setupUI();
+    loadSettings();
+    applyThemeStyle();
 }
 
 AlertSettingsDialog::~AlertSettingsDialog()
 {
 }
 
+void AlertSettingsDialog::paintEvent(QPaintEvent *)
+{
+    QPainter painter(this);
+    painter.setRenderHint(QPainter::Antialiasing);
+
+    QPainterPath path;
+    path.addRoundedRect(QRectF(rect()), 8, 8);
+    painter.setOpacity(1);
+    painter.fillPath(path, isDarkTheme ? QColor("#252525") : QColor("#F8F8F8"));
+}
+
 void AlertSettingsDialog::setupUI()
 {
-    QWidget *contentWidget = new QWidget(this);
-    QVBoxLayout *mainLayout = new QVBoxLayout(contentWidget);
-    mainLayout->setContentsMargins(15, 15, 15, 15);
-    mainLayout->setSpacing(10);
+    QVBoxLayout *mainLayout = new QVBoxLayout(this);
+    mainLayout->setContentsMargins(1, 1, 1, 1);
+    mainLayout->setSpacing(0);
+
+    // Title bar
+    QWidget *titleBar = new QWidget();
+    titleBar->setFixedHeight(40);
+    QHBoxLayout *titleLayout = new QHBoxLayout(titleBar);
+    titleLayout->setContentsMargins(15, 0, 5, 0);
+
+    titleLabel = new QLabel(tr("Alert Settings"));
+    titleLabel->setStyleSheet("font-size: 14px; font-weight: bold;");
+
+    closeButton = new DWindowCloseButton();
+    closeButton->setFixedSize(27, 23);
+    connect(closeButton, &DWindowCloseButton::clicked, this, &DAbstractDialog::close);
+
+    titleLayout->addWidget(titleLabel);
+    titleLayout->addStretch();
+    titleLayout->addWidget(closeButton);
+    mainLayout->addWidget(titleBar);
+
+    // Content area
+    QWidget *contentWidget = new QWidget();
+    QVBoxLayout *contentLayout = new QVBoxLayout(contentWidget);
+    contentLayout->setContentsMargins(15, 10, 15, 15);
+    contentLayout->setSpacing(10);
 
     // CPU Alert
     QGroupBox *cpuGroup = new QGroupBox(tr("CPU Usage Alert"));
@@ -55,11 +93,12 @@ void AlertSettingsDialog::setupUI()
     cpuThreshold->setRange(50, 100);
     cpuThreshold->setSuffix("%");
     cpuThreshold->setValue(90);
+    cpuThreshold->setFixedHeight(28);
     cpuLayout->addWidget(cpuAlertEnabled);
     cpuLayout->addWidget(new QLabel(tr("Threshold:")));
     cpuLayout->addWidget(cpuThreshold);
     cpuLayout->addStretch();
-    mainLayout->addWidget(cpuGroup);
+    contentLayout->addWidget(cpuGroup);
 
     // Memory Alert
     QGroupBox *memGroup = new QGroupBox(tr("Memory Usage Alert"));
@@ -69,11 +108,12 @@ void AlertSettingsDialog::setupUI()
     memoryThreshold->setRange(50, 100);
     memoryThreshold->setSuffix("%");
     memoryThreshold->setValue(85);
+    memoryThreshold->setFixedHeight(28);
     memLayout->addWidget(memoryAlertEnabled);
     memLayout->addWidget(new QLabel(tr("Threshold:")));
     memLayout->addWidget(memoryThreshold);
     memLayout->addStretch();
-    mainLayout->addWidget(memGroup);
+    contentLayout->addWidget(memGroup);
 
     // Disk Alert
     QGroupBox *diskGroup = new QGroupBox(tr("Disk Usage Alert"));
@@ -83,11 +123,12 @@ void AlertSettingsDialog::setupUI()
     diskThreshold->setRange(50, 100);
     diskThreshold->setSuffix("%");
     diskThreshold->setValue(90);
+    diskThreshold->setFixedHeight(28);
     diskLayout->addWidget(diskAlertEnabled);
     diskLayout->addWidget(new QLabel(tr("Threshold:")));
     diskLayout->addWidget(diskThreshold);
     diskLayout->addStretch();
-    mainLayout->addWidget(diskGroup);
+    contentLayout->addWidget(diskGroup);
 
     // Temperature Alert
     QGroupBox *tempGroup = new QGroupBox(tr("Temperature Alert"));
@@ -97,11 +138,12 @@ void AlertSettingsDialog::setupUI()
     tempThreshold->setRange(50, 100);
     tempThreshold->setSuffix("°C");
     tempThreshold->setValue(80);
+    tempThreshold->setFixedHeight(28);
     tempLayout->addWidget(tempAlertEnabled);
     tempLayout->addWidget(new QLabel(tr("Threshold:")));
     tempLayout->addWidget(tempThreshold);
     tempLayout->addStretch();
-    mainLayout->addWidget(tempGroup);
+    contentLayout->addWidget(tempGroup);
 
     // Network Alert (high bandwidth)
     QGroupBox *netGroup = new QGroupBox(tr("Network Bandwidth Alert"));
@@ -111,28 +153,31 @@ void AlertSettingsDialog::setupUI()
     networkThreshold->setRange(1, 1000);
     networkThreshold->setSuffix(" MB/s");
     networkThreshold->setValue(100);
+    networkThreshold->setFixedHeight(28);
     netLayout->addWidget(networkAlertEnabled);
     netLayout->addWidget(new QLabel(tr("Threshold:")));
     netLayout->addWidget(networkThreshold);
     netLayout->addStretch();
-    mainLayout->addWidget(netGroup);
+    contentLayout->addWidget(netGroup);
 
     // Buttons
     QHBoxLayout *btnLayout = new QHBoxLayout();
     testBtn = new QPushButton(tr("Test Notification"));
     saveBtn = new QPushButton(tr("Save"));
+    testBtn->setFixedHeight(30);
+    saveBtn->setFixedHeight(30);
     connect(testBtn, &QPushButton::clicked, this, &AlertSettingsDialog::testNotification);
     connect(saveBtn, &QPushButton::clicked, this, &AlertSettingsDialog::saveSettings);
     btnLayout->addWidget(testBtn);
     btnLayout->addStretch();
     btnLayout->addWidget(saveBtn);
-    mainLayout->addLayout(btnLayout);
+    contentLayout->addLayout(btnLayout);
 
     // Status
     statusLabel = new QLabel();
-    mainLayout->addWidget(statusLabel);
+    contentLayout->addWidget(statusLabel);
 
-    addContent(contentWidget);
+    mainLayout->addWidget(contentWidget);
 }
 
 void AlertSettingsDialog::loadSettings()
@@ -246,36 +291,36 @@ void AlertSettingsDialog::checkAndNotify(const QString &type, double currentValu
 
 void AlertSettingsDialog::updateTheme(const QString &theme)
 {
-    bool isDark = (theme == "dark");
-    QString textColor = isDark ? "#FFFFFF" : "#000000";
-    QString bgColor = isDark ? "#252525" : "#FFFFFF";
-    QString borderColor = isDark ? "#444444" : "#DDDDDD";
-    QString labelColor = isDark ? "#CCCCCC" : "#666666";
+    isDarkTheme = (theme == "dark");
+    applyThemeStyle();
+    update();
+}
 
-    QString groupBoxStyle = QString(
-        "QGroupBox { "
-        "  background-color: %1; "
-        "  border: 1px solid %2; "
-        "  border-radius: 4px; "
-        "  margin-top: 8px; "
-        "  padding-top: 8px; "
-        "  color: %3; "
-        "} "
-        "QGroupBox::title { "
-        "  subcontrol-origin: margin; "
-        "  left: 10px; "
-        "  padding: 0 3px; "
-        "  color: %3; "
-        "}"
-    ).arg(bgColor).arg(borderColor).arg(textColor);
+void AlertSettingsDialog::applyThemeStyle()
+{
+    QString textColor = isDarkTheme ? "#FFFFFF" : "#303030";
+    QString bgColor = isDarkTheme ? "#2D2D2D" : "#FFFFFF";
+    QString borderColor = isDarkTheme ? "#444444" : "#CCCCCC";
+    QString headerBg = isDarkTheme ? "#3A3A3A" : "#E8E8E8";
+    QString inputBg = isDarkTheme ? "#3A3A3A" : "#FFFFFF";
 
-    QString widgetStyle = QString(
-        "QLabel { color: %1; } "
-        "QCheckBox { color: %1; } "
-        "QSpinBox { background: %2; color: %1; border: 1px solid %3; } "
-        "QPushButton { background: %2; color: %1; border: 1px solid %3; padding: 5px 15px; border-radius: 3px; } "
-        "QPushButton:hover { background: %3; }"
-    ).arg(textColor).arg(bgColor).arg(borderColor);
+    // Title label
+    titleLabel->setStyleSheet(QString("QLabel { color: %1; background: transparent; font-size: 14px; font-weight: bold; }").arg(textColor));
 
-    setStyleSheet(groupBoxStyle + widgetStyle);
+    // Close button theme
+    Dtk::Widget::DThemeManager::instance()->setTheme(closeButton, isDarkTheme ? "dark" : "light");
+
+    QString style = QString(
+        "QGroupBox { background-color: %1; border: 1px solid %3; border-radius: 4px; margin-top: 10px; padding-top: 10px; color: %2; } "
+        "QGroupBox::title { subcontrol-origin: margin; left: 10px; padding: 0 5px; color: %2; background-color: transparent; } "
+        "QLabel { color: %2; background-color: transparent; } "
+        "QCheckBox { color: %2; background-color: transparent; } "
+        "QCheckBox::indicator { background-color: %5; border: 1px solid %3; border-radius: 2px; } "
+        "QSpinBox { background-color: %5; color: %2; border: 1px solid %3; padding: 3px; border-radius: 4px; } "
+        "QPushButton { background-color: %4; color: %2; border: 1px solid %3; padding: 5px 15px; border-radius: 4px; } "
+        "QPushButton:hover { background-color: #2ca7f8; color: white; border-color: #2ca7f8; } "
+        "QPushButton:pressed { background-color: #1a8ddb; }"
+    ).arg(bgColor).arg(textColor).arg(borderColor).arg(headerBg).arg(inputBg);
+
+    setStyleSheet(style);
 }

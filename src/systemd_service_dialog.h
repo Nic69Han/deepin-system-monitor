@@ -12,7 +12,8 @@
 #ifndef SYSTEMDSERVICEDIALOG_H
 #define SYSTEMDSERVICEDIALOG_H
 
-#include "ddialog.h"
+#include <dabstractdialog.h>
+#include <dwindowclosebutton.h>
 #include <QTableWidget>
 #include <QLineEdit>
 #include <QPushButton>
@@ -29,13 +30,16 @@ struct ServiceInfo {
     QString description;
 };
 
-class SystemdServiceDialog : public DDialog
+class SystemdServiceDialog : public DAbstractDialog
 {
     Q_OBJECT
 
 public:
     explicit SystemdServiceDialog(QWidget *parent = nullptr);
     ~SystemdServiceDialog();
+
+protected:
+    void paintEvent(QPaintEvent *) override;
 
 private slots:
     void refreshServices();
@@ -54,6 +58,7 @@ private:
     void loadServices();
     void updateButtons();
     void executeServiceCommand(const QString &action);
+    void applyThemeStyle();
 
     QTableWidget *serviceTable;
     QLineEdit *searchEdit;
@@ -65,9 +70,12 @@ private:
     QPushButton *disableBtn;
     QPushButton *refreshBtn;
     QLabel *statusLabel;
-    
+    QLabel *titleLabel;
+    DWindowCloseButton *closeButton;
+
     QList<ServiceInfo> allServices;
     QString currentFilter;
+    bool isDarkTheme;
 };
 
 #endif

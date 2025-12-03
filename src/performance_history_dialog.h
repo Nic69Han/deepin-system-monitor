@@ -12,7 +12,8 @@
 #ifndef PERFORMANCEHISTORYDIALOG_H
 #define PERFORMANCEHISTORYDIALOG_H
 
-#include "ddialog.h"
+#include <dabstractdialog.h>
+#include <dwindowclosebutton.h>
 #include <QWidget>
 #include <QTimer>
 #include <QList>
@@ -54,7 +55,7 @@ private:
     bool darkTheme;
 };
 
-class PerformanceHistoryDialog : public DDialog
+class PerformanceHistoryDialog : public DAbstractDialog
 {
     Q_OBJECT
 
@@ -67,13 +68,24 @@ public:
     void updateNetworkHistory(double downloadKB, double uploadKB);
     void updateDiskHistory(double readKB, double writeKB);
 
+protected:
+    void paintEvent(QPaintEvent *) override;
+
 private slots:
     void onTimeRangeChanged(int index);
     void clearHistory();
     void updateTheme(const QString &theme);
+    void collectData();
 
 private:
     void setupUI();
+    void applyThemeStyle();
+    double getCpuUsage();
+    double getMemoryUsage();
+    void getNetworkStats(double &rxKB, double &txKB);
+    void getDiskStats(double &readKB, double &writeKB);
+    void updateSystemInfo();
+    QString formatUptime(long seconds);
 
     HistoryGraphWidget *cpuGraph;
     HistoryGraphWidget *memoryGraph;
@@ -85,9 +97,32 @@ private:
     QComboBox *timeRangeCombo;
     QPushButton *clearBtn;
     QLabel *statusLabel;
+    QLabel *titleLabel;
+    DWindowCloseButton *closeButton;
 
+    // System info labels
+    QLabel *processCountLabel;
+    QLabel *threadCountLabel;
+    QLabel *handleCountLabel;
+    QLabel *uptimeLabel;
+    QLabel *cpuSpeedLabel;
+    QLabel *cacheSizeLabel;
+
+    QTimer *dataTimer;
     int currentMaxPoints;
     bool isDarkTheme;
+
+    // For CPU calculation
+    unsigned long long prevCpuTotal;
+    unsigned long long prevCpuIdle;
+
+    // For network calculation
+    unsigned long long prevRxBytes;
+    unsigned long long prevTxBytes;
+
+    // For disk calculation
+    unsigned long long prevReadSectors;
+    unsigned long long prevWriteSectors;
 };
 
 #endif

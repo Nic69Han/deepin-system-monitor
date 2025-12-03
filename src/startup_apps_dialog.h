@@ -12,7 +12,8 @@
 #ifndef STARTUPAPPSDIALOG_H
 #define STARTUPAPPSDIALOG_H
 
-#include "ddialog.h"
+#include <dabstractdialog.h>
+#include <dwindowclosebutton.h>
 #include <QTableWidget>
 #include <QLineEdit>
 #include <QPushButton>
@@ -30,13 +31,16 @@ struct StartupAppInfo {
     bool hidden;
 };
 
-class StartupAppsDialog : public DDialog
+class StartupAppsDialog : public DAbstractDialog
 {
     Q_OBJECT
 
 public:
     explicit StartupAppsDialog(QWidget *parent = nullptr);
     ~StartupAppsDialog();
+
+protected:
+    void paintEvent(QPaintEvent *) override;
 
 private slots:
     void refreshApps();
@@ -54,6 +58,7 @@ private:
     void updateButtons();
     void setAppEnabled(const QString &filePath, bool enabled);
     QStringList getAutostartDirs();
+    void applyThemeStyle();
 
     QTableWidget *appTable;
     QLineEdit *searchEdit;
@@ -62,9 +67,12 @@ private:
     QPushButton *addBtn;
     QPushButton *refreshBtn;
     QLabel *statusLabel;
-    
+    QLabel *titleLabel;
+    DWindowCloseButton *closeButton;
+
     QList<StartupAppInfo> allApps;
     QString currentFilter;
+    bool isDarkTheme;
 };
 
 #endif

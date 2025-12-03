@@ -101,10 +101,20 @@ qint64 DiskScanWorker::calculateDirSize(const QString &path, int depth)
 // ============ DiskUsageDialog Implementation ============
 
 DiskUsageDialog::DiskUsageDialog(QWidget *parent, const QString &path)
-    : DAbstractDialog(parent), currentPath(path), scanWorker(nullptr), currentTotalSize(0)
+    : DAbstractDialog(parent), currentPath(path), scanWorker(nullptr), currentTotalSize(0), isDarkTheme(false)
 {
     setAttribute(Qt::WA_DeleteOnClose, true);
+
+    // Register meta type for cross-thread signal/slot
+    qRegisterMetaType<DiskItemInfo>("DiskItemInfo");
+
+    // Connect to theme changes
+    connect(Dtk::Widget::DThemeManager::instance(), &Dtk::Widget::DThemeManager::themeChanged,
+            this, &DiskUsageDialog::updateTheme);
+    isDarkTheme = (Dtk::Widget::DThemeManager::instance()->theme() == "dark");
+
     setupUI();
+    applyThemeStyle();
     startScan(path);
 }
 
@@ -119,39 +129,56 @@ DiskUsageDialog::~DiskUsageDialog()
 
 void DiskUsageDialog::setupUI()
 {
-    setMinimumSize(600, 500);
+    setMinimumSize(600, 540);
     setWindowTitle(tr("Disk Usage Analyzer"));
 
     mainLayout = new QVBoxLayout(this);
-    mainLayout->setContentsMargins(10, 10, 10, 10);
+    mainLayout->setContentsMargins(1, 1, 1, 1);
+    mainLayout->setSpacing(0);
 
-    // Close button
-    closeButton = new DWindowCloseButton;
+    // Title bar
+    QWidget *titleBar = new QWidget();
+    titleBar->setFixedHeight(40);
+    QHBoxLayout *titleLayout = new QHBoxLayout(titleBar);
+    titleLayout->setContentsMargins(15, 0, 5, 0);
+
+    titleLabel = new QLabel(tr("Disk Usage Analyzer"));
+    titleLabel->setStyleSheet("font-size: 14px; font-weight: bold;");
+
+    closeButton = new DWindowCloseButton();
     closeButton->setFixedSize(27, 23);
     connect(closeButton, &DWindowCloseButton::clicked, this, &DAbstractDialog::close);
-    Dtk::Widget::DThemeManager::instance()->setTheme(closeButton, "light");
+
+    titleLayout->addWidget(titleLabel);
+    titleLayout->addStretch();
+    titleLayout->addWidget(closeButton);
+    mainLayout->addWidget(titleBar);
+
+    // Content area
+    QWidget *content = new QWidget();
+    QVBoxLayout *contentLayout = new QVBoxLayout(content);
+    contentLayout->setContentsMargins(15, 10, 15, 15);
+    contentLayout->setSpacing(8);
 
     // Navigation
     navLayout = new QHBoxLayout();
     backButton = new QPushButton(tr("← Back"));
     backButton->setEnabled(false);
+    backButton->setFixedHeight(28);
     connect(backButton, &QPushButton::clicked, this, &DiskUsageDialog::onBackClicked);
 
     pathLabel = new QLabel(currentPath);
-    pathLabel->setStyleSheet("font-weight: bold; font-size: 14px;");
 
     navLayout->addWidget(backButton);
     navLayout->addWidget(pathLabel, 1);
-
-    // Status label
-    statusLabel = new QLabel(tr("Scanning..."));
-    statusLabel->setStyleSheet("color: #666;");
+    contentLayout->addLayout(navLayout);
 
     // Progress bar
     scanProgress = new QProgressBar();
     scanProgress->setRange(0, 0);  // Indeterminate
     scanProgress->setFixedHeight(4);
     scanProgress->setTextVisible(false);
+    contentLayout->addWidget(scanProgress);
 
     // Tree widget
     treeWidget = new QTreeWidget();
@@ -164,13 +191,13 @@ void DiskUsageDialog::setupUI()
     treeWidget->setSortingEnabled(true);
     treeWidget->header()->setStretchLastSection(true);
     connect(treeWidget, &QTreeWidget::itemDoubleClicked, this, &DiskUsageDialog::onItemDoubleClicked);
+    contentLayout->addWidget(treeWidget);
 
-    // Layout assembly
-    mainLayout->addWidget(closeButton, 0, Qt::AlignRight);
-    mainLayout->addLayout(navLayout);
-    mainLayout->addWidget(scanProgress);
-    mainLayout->addWidget(treeWidget);
-    mainLayout->addWidget(statusLabel);
+    // Status label
+    statusLabel = new QLabel(tr("Scanning..."));
+    contentLayout->addWidget(statusLabel);
+
+    mainLayout->addWidget(content);
 }
 
 void DiskUsageDialog::startScan(const QString &path)
@@ -277,8 +304,56 @@ QColor DiskUsageDialog::getSizeColor(double percentage)
 void DiskUsageDialog::paintEvent(QPaintEvent *)
 {
     QPainter painter(this);
+    painter.setRenderHint(QPainter::Antialiasing);
+
     QPainterPath path;
-    path.addRect(QRectF(rect()));
+    path.addRoundedRect(QRectF(rect()), 8, 8);
     painter.setOpacity(1);
-    painter.fillPath(path, QColor("#ffffff"));
+    painter.fillPath(path, isDarkTheme ? QColor("#252525") : QColor("#F8F8F8"));
+}
+
+void DiskUsageDialog::updateTheme(const QString &theme)
+{
+    isDarkTheme = (theme == "dark");
+    applyThemeStyle();
+    update();
+}
+
+void DiskUsageDialog::applyThemeStyle()
+{
+    QString textColor = isDarkTheme ? "#FFFFFF" : "#303030";
+    QString bgColor = isDarkTheme ? "#2D2D2D" : "#FFFFFF";
+    QString borderColor = isDarkTheme ? "#444444" : "#CCCCCC";
+    QString headerBg = isDarkTheme ? "#3A3A3A" : "#E8E8E8";
+    QString inputBg = isDarkTheme ? "#3A3A3A" : "#FFFFFF";
+    QString altRowColor = isDarkTheme ? "#333333" : "#F5F5F5";
+
+    // Title label
+    titleLabel->setStyleSheet(QString("QLabel { color: %1; background: transparent; font-size: 14px; font-weight: bold; }").arg(textColor));
+
+    // Path label
+    pathLabel->setStyleSheet(QString("QLabel { color: %1; background: transparent; font-weight: bold; font-size: 13px; }").arg(textColor));
+
+    // Status label
+    statusLabel->setStyleSheet(QString("QLabel { color: %1; background: transparent; }").arg(isDarkTheme ? "#888888" : "#666666"));
+
+    // Close button theme
+    Dtk::Widget::DThemeManager::instance()->setTheme(closeButton, isDarkTheme ? "dark" : "light");
+
+    QString style = QString(
+        "QLabel { color: %2; background-color: transparent; } "
+        "QPushButton { background-color: %4; color: %2; border: 1px solid %3; padding: 5px 15px; border-radius: 4px; } "
+        "QPushButton:hover { background-color: #2ca7f8; color: white; border-color: #2ca7f8; } "
+        "QPushButton:pressed { background-color: #1a8ddb; } "
+        "QPushButton:disabled { background-color: %1; color: %3; } "
+        "QTreeWidget { background-color: %1; color: %2; border: 1px solid %3; border-radius: 4px; alternate-background-color: %6; } "
+        "QTreeWidget::item { padding: 4px; } "
+        "QTreeWidget::item:selected { background-color: #2ca7f8; color: white; } "
+        "QTreeWidget::item:hover { background-color: %4; } "
+        "QHeaderView::section { background-color: %4; color: %2; border: none; border-bottom: 1px solid %3; padding: 6px; font-weight: bold; } "
+        "QProgressBar { background-color: %3; border: none; border-radius: 2px; } "
+        "QProgressBar::chunk { background-color: #2ca7f8; border-radius: 2px; }"
+    ).arg(bgColor).arg(textColor).arg(borderColor).arg(headerBg).arg(inputBg).arg(altRowColor);
+
+    setStyleSheet(style);
 }

@@ -17,124 +17,165 @@
 #include <QProcess>
 #include <QFile>
 #include <QDebug>
+#include <QPainter>
 #include <sys/resource.h>
 #include <unistd.h>
 #include <dthememanager.h>
 
 ResourceLimitDialog::ResourceLimitDialog(int pid, const QString &processName, QWidget *parent)
-    : DDialog(parent), m_pid(pid), m_processName(processName)
+    : DAbstractDialog(parent), m_pid(pid), m_processName(processName), isDarkTheme(false)
 {
+    setAttribute(Qt::WA_DeleteOnClose, true);
     setWindowTitle(tr("Resource Limits - %1 (PID: %2)").arg(processName).arg(pid));
-    setFixedSize(450, 400);
-    setupUI();
-    loadCurrentLimits();
+    setFixedSize(450, 460);
 
     // Connect to theme changes
     connect(Dtk::Widget::DThemeManager::instance(), &Dtk::Widget::DThemeManager::themeChanged,
             this, &ResourceLimitDialog::updateTheme);
-    updateTheme(Dtk::Widget::DThemeManager::instance()->theme());
+    isDarkTheme = (Dtk::Widget::DThemeManager::instance()->theme() == "dark");
+
+    setupUI();
+    loadCurrentLimits();
+    applyThemeStyle();
 }
 
 ResourceLimitDialog::~ResourceLimitDialog()
 {
 }
 
+void ResourceLimitDialog::paintEvent(QPaintEvent *)
+{
+    QPainter painter(this);
+    painter.setRenderHint(QPainter::Antialiasing);
+
+    QPainterPath path;
+    path.addRoundedRect(QRectF(rect()), 8, 8);
+    painter.setOpacity(1);
+    painter.fillPath(path, isDarkTheme ? QColor("#252525") : QColor("#F8F8F8"));
+}
+
 void ResourceLimitDialog::setupUI()
 {
-    QWidget *content = new QWidget(this);
-    QVBoxLayout *mainLayout = new QVBoxLayout(content);
-    mainLayout->setSpacing(15);
-    mainLayout->setContentsMargins(15, 15, 15, 15);
-    
+    QVBoxLayout *mainLayout = new QVBoxLayout(this);
+    mainLayout->setContentsMargins(1, 1, 1, 1);
+    mainLayout->setSpacing(0);
+
+    // Title bar
+    QWidget *titleBar = new QWidget();
+    titleBar->setFixedHeight(40);
+    QHBoxLayout *titleLayout = new QHBoxLayout(titleBar);
+    titleLayout->setContentsMargins(15, 0, 5, 0);
+
+    titleLabel = new QLabel(tr("Resource Limits - %1").arg(m_processName));
+    titleLabel->setStyleSheet("font-size: 14px; font-weight: bold;");
+
+    closeButton = new DWindowCloseButton();
+    closeButton->setFixedSize(27, 23);
+    connect(closeButton, &DWindowCloseButton::clicked, this, &DAbstractDialog::close);
+
+    titleLayout->addWidget(titleLabel);
+    titleLayout->addStretch();
+    titleLayout->addWidget(closeButton);
+    mainLayout->addWidget(titleBar);
+
+    // Content area
+    QWidget *content = new QWidget();
+    QVBoxLayout *contentLayout = new QVBoxLayout(content);
+    contentLayout->setSpacing(12);
+    contentLayout->setContentsMargins(15, 10, 15, 15);
+
     // CPU Limit Group
-    QGroupBox *cpuGroup = new QGroupBox(tr("CPU Limit"), content);
+    QGroupBox *cpuGroup = new QGroupBox(tr("CPU Limit"));
     QVBoxLayout *cpuLayout = new QVBoxLayout(cpuGroup);
-    
-    cpuLimitCheck = new QCheckBox(tr("Enable CPU limit"), cpuGroup);
+
+    cpuLimitCheck = new QCheckBox(tr("Enable CPU limit"));
     cpuLayout->addWidget(cpuLimitCheck);
-    
+
     QHBoxLayout *cpuSliderLayout = new QHBoxLayout();
-    cpuSlider = new QSlider(Qt::Horizontal, cpuGroup);
+    cpuSlider = new QSlider(Qt::Horizontal);
     cpuSlider->setRange(1, 100);
     cpuSlider->setValue(100);
     cpuSlider->setEnabled(false);
-    cpuValueLabel = new QLabel("100%", cpuGroup);
+    cpuValueLabel = new QLabel("100%");
     cpuSliderLayout->addWidget(cpuSlider);
     cpuSliderLayout->addWidget(cpuValueLabel);
     cpuLayout->addLayout(cpuSliderLayout);
-    
+
     connect(cpuLimitCheck, &QCheckBox::toggled, cpuSlider, &QSlider::setEnabled);
     connect(cpuSlider, &QSlider::valueChanged, this, &ResourceLimitDialog::onCpuSliderChanged);
-    
-    mainLayout->addWidget(cpuGroup);
-    
+
+    contentLayout->addWidget(cpuGroup);
+
     // Memory Limit Group
-    QGroupBox *memGroup = new QGroupBox(tr("Memory Limit"), content);
+    QGroupBox *memGroup = new QGroupBox(tr("Memory Limit"));
     QVBoxLayout *memLayout = new QVBoxLayout(memGroup);
-    
-    memoryLimitCheck = new QCheckBox(tr("Enable memory limit"), memGroup);
+
+    memoryLimitCheck = new QCheckBox(tr("Enable memory limit"));
     memLayout->addWidget(memoryLimitCheck);
-    
+
     QHBoxLayout *memSliderLayout = new QHBoxLayout();
-    memorySlider = new QSlider(Qt::Horizontal, memGroup);
+    memorySlider = new QSlider(Qt::Horizontal);
     memorySlider->setRange(64, 8192);
     memorySlider->setValue(1024);
     memorySlider->setEnabled(false);
-    memoryValueLabel = new QLabel("1024 MB", memGroup);
+    memoryValueLabel = new QLabel("1024 MB");
     memSliderLayout->addWidget(memorySlider);
     memSliderLayout->addWidget(memoryValueLabel);
     memLayout->addLayout(memSliderLayout);
-    
+
     connect(memoryLimitCheck, &QCheckBox::toggled, memorySlider, &QSlider::setEnabled);
     connect(memorySlider, &QSlider::valueChanged, this, &ResourceLimitDialog::onMemorySliderChanged);
-    
-    mainLayout->addWidget(memGroup);
-    
+
+    contentLayout->addWidget(memGroup);
+
     // Priority Group
-    QGroupBox *prioGroup = new QGroupBox(tr("Process Priority"), content);
+    QGroupBox *prioGroup = new QGroupBox(tr("Process Priority"));
     QGridLayout *prioLayout = new QGridLayout(prioGroup);
-    
-    niceLabel = new QLabel(tr("Nice value (-20 to 19):"), prioGroup);
-    niceSpin = new QSpinBox(prioGroup);
+
+    niceLabel = new QLabel(tr("Nice value (-20 to 19):"));
+    niceSpin = new QSpinBox();
     niceSpin->setRange(-20, 19);
     niceSpin->setValue(0);
-    connect(niceSpin, QOverload<int>::of(&QSpinBox::valueChanged), 
+    niceSpin->setFixedHeight(28);
+    connect(niceSpin, QOverload<int>::of(&QSpinBox::valueChanged),
             this, &ResourceLimitDialog::onNiceChanged);
-    
+
     prioLayout->addWidget(niceLabel, 0, 0);
     prioLayout->addWidget(niceSpin, 0, 1);
-    
-    ioPriorityLabel = new QLabel(tr("I/O Priority:"), prioGroup);
-    ioPriorityCombo = new QComboBox(prioGroup);
+
+    ioPriorityLabel = new QLabel(tr("I/O Priority:"));
+    ioPriorityCombo = new QComboBox();
     ioPriorityCombo->addItem(tr("None (default)"), 0);
     ioPriorityCombo->addItem(tr("Real-time"), 1);
     ioPriorityCombo->addItem(tr("Best-effort"), 2);
     ioPriorityCombo->addItem(tr("Idle"), 3);
-    
+    ioPriorityCombo->setFixedHeight(28);
+
     prioLayout->addWidget(ioPriorityLabel, 1, 0);
     prioLayout->addWidget(ioPriorityCombo, 1, 1);
-    
-    mainLayout->addWidget(prioGroup);
-    
+
+    contentLayout->addWidget(prioGroup);
+
     // Status
-    statusLabel = new QLabel("", content);
-    statusLabel->setStyleSheet("color: #888;");
-    mainLayout->addWidget(statusLabel);
-    
+    statusLabel = new QLabel("");
+    contentLayout->addWidget(statusLabel);
+
     // Buttons
     QHBoxLayout *btnLayout = new QHBoxLayout();
-    applyBtn = new QPushButton(tr("Apply"), content);
+    applyBtn = new QPushButton(tr("Apply"));
+    applyBtn->setFixedHeight(30);
     connect(applyBtn, &QPushButton::clicked, this, &ResourceLimitDialog::applyLimits);
-    
-    cancelBtn = new QPushButton(tr("Cancel"), content);
+
+    cancelBtn = new QPushButton(tr("Cancel"));
+    cancelBtn->setFixedHeight(30);
     connect(cancelBtn, &QPushButton::clicked, this, &ResourceLimitDialog::close);
-    
+
     btnLayout->addStretch();
     btnLayout->addWidget(applyBtn);
     btnLayout->addWidget(cancelBtn);
-    mainLayout->addLayout(btnLayout);
-    
-    addContent(content);
+    contentLayout->addLayout(btnLayout);
+
+    mainLayout->addWidget(content);
 }
 
 void ResourceLimitDialog::loadCurrentLimits()
@@ -276,37 +317,43 @@ bool ResourceLimitDialog::setMemoryLimit(int megabytes)
 void ResourceLimitDialog::updateTheme(const QString &theme)
 {
     bool isDark = (theme == "dark");
-    QString textColor = isDark ? "#FFFFFF" : "#000000";
-    QString bgColor = isDark ? "#252525" : "#FFFFFF";
-    QString borderColor = isDark ? "#444444" : "#DDDDDD";
+    isDarkTheme = isDark;
+    applyThemeStyle();
+    update();
+}
 
-    QString groupBoxStyle = QString(
-        "QGroupBox { "
-        "  background-color: %1; "
-        "  border: 1px solid %2; "
-        "  border-radius: 4px; "
-        "  margin-top: 8px; "
-        "  padding-top: 8px; "
-        "  color: %3; "
-        "} "
-        "QGroupBox::title { "
-        "  subcontrol-origin: margin; "
-        "  left: 10px; "
-        "  padding: 0 3px; "
-        "  color: %3; "
-        "}"
-    ).arg(bgColor).arg(borderColor).arg(textColor);
+void ResourceLimitDialog::applyThemeStyle()
+{
+    QString textColor = isDarkTheme ? "#FFFFFF" : "#303030";
+    QString bgColor = isDarkTheme ? "#2D2D2D" : "#FFFFFF";
+    QString borderColor = isDarkTheme ? "#444444" : "#CCCCCC";
+    QString headerBg = isDarkTheme ? "#3A3A3A" : "#E8E8E8";
+    QString inputBg = isDarkTheme ? "#3A3A3A" : "#FFFFFF";
 
-    QString widgetStyle = QString(
-        "QLabel { color: %1; } "
-        "QCheckBox { color: %1; } "
-        "QSlider { background: transparent; } "
-        "QSpinBox { background: %2; color: %1; border: 1px solid %3; } "
-        "QComboBox { background: %2; color: %1; border: 1px solid %3; } "
-        "QComboBox QAbstractItemView { background: %2; color: %1; } "
-        "QPushButton { background: %2; color: %1; border: 1px solid %3; padding: 5px 15px; border-radius: 3px; } "
-        "QPushButton:hover { background: %3; }"
-    ).arg(textColor).arg(bgColor).arg(borderColor);
+    // Title label
+    titleLabel->setStyleSheet(QString("QLabel { color: %1; background: transparent; font-size: 14px; font-weight: bold; }").arg(textColor));
 
-    setStyleSheet(groupBoxStyle + widgetStyle);
+    // Close button theme
+    Dtk::Widget::DThemeManager::instance()->setTheme(closeButton, isDarkTheme ? "dark" : "light");
+
+    QString style = QString(
+        "QGroupBox { background-color: %1; border: 1px solid %3; border-radius: 4px; margin-top: 10px; padding-top: 10px; color: %2; } "
+        "QGroupBox::title { subcontrol-origin: margin; left: 10px; padding: 0 5px; color: %2; background-color: transparent; } "
+        "QLabel { color: %2; background-color: transparent; } "
+        "QCheckBox { color: %2; background-color: transparent; } "
+        "QCheckBox::indicator { background-color: %5; border: 1px solid %3; border-radius: 2px; } "
+        "QSlider { background-color: transparent; } "
+        "QSlider::groove:horizontal { background-color: %3; height: 6px; border-radius: 3px; } "
+        "QSlider::handle:horizontal { background-color: #2ca7f8; width: 14px; margin: -4px 0; border-radius: 7px; } "
+        "QSpinBox { background-color: %5; color: %2; border: 1px solid %3; padding: 3px; border-radius: 4px; } "
+        "QComboBox { background-color: %5; color: %2; border: 1px solid %3; padding: 5px; border-radius: 4px; } "
+        "QComboBox QAbstractItemView { background-color: %1; color: %2; selection-background-color: #2ca7f8; } "
+        "QComboBox::drop-down { border: none; width: 20px; } "
+        "QComboBox::down-arrow { image: none; border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 5px solid %2; } "
+        "QPushButton { background-color: %4; color: %2; border: 1px solid %3; padding: 5px 15px; border-radius: 4px; } "
+        "QPushButton:hover { background-color: #2ca7f8; color: white; border-color: #2ca7f8; } "
+        "QPushButton:pressed { background-color: #1a8ddb; }"
+    ).arg(bgColor).arg(textColor).arg(borderColor).arg(headerBg).arg(inputBg);
+
+    setStyleSheet(style);
 }

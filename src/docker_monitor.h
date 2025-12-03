@@ -12,7 +12,8 @@
 #ifndef DOCKERMONITOR_H
 #define DOCKERMONITOR_H
 
-#include "ddialog.h"
+#include <dabstractdialog.h>
+#include <dwindowclosebutton.h>
 #include <QWidget>
 #include <QTimer>
 #include <QTableWidget>
@@ -33,13 +34,16 @@ struct ContainerInfo {
     bool running;
 };
 
-class DockerMonitorDialog : public DDialog
+class DockerMonitorDialog : public DAbstractDialog
 {
     Q_OBJECT
 
 public:
     explicit DockerMonitorDialog(QWidget *parent = nullptr);
     ~DockerMonitorDialog();
+
+protected:
+    void paintEvent(QPaintEvent *) override;
 
 private slots:
     void refreshContainers();
@@ -57,6 +61,7 @@ private:
     QString getSelectedContainerId();
     bool isDockerAvailable();
     void runDockerCommand(const QStringList &args, bool refresh = true);
+    void applyThemeStyle();
 
     QTableWidget *containerTable;
     QPushButton *refreshBtn;
@@ -66,9 +71,12 @@ private:
     QPushButton *removeBtn;
     QPushButton *logsBtn;
     QLabel *statusLabel;
+    QLabel *titleLabel;
+    DWindowCloseButton *closeButton;
     QTimer *refreshTimer;
-    
+
     QList<ContainerInfo> containers;
+    bool isDarkTheme;
 };
 
 #endif

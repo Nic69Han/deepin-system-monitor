@@ -12,7 +12,8 @@
 #ifndef ALERTSETTINGSDIALOG_H
 #define ALERTSETTINGSDIALOG_H
 
-#include "ddialog.h"
+#include <dabstractdialog.h>
+#include <dwindowclosebutton.h>
 #include <QCheckBox>
 #include <QSpinBox>
 #include <QLabel>
@@ -22,7 +23,7 @@
 
 DWIDGET_USE_NAMESPACE
 
-class AlertSettingsDialog : public DDialog
+class AlertSettingsDialog : public DAbstractDialog
 {
     Q_OBJECT
 
@@ -34,6 +35,9 @@ public:
     static int getThreshold(const QString &type);
     static void checkAndNotify(const QString &type, double currentValue, const QString &label);
 
+protected:
+    void paintEvent(QPaintEvent *) override;
+
 private slots:
     void saveSettings();
     void testNotification();
@@ -42,6 +46,7 @@ private slots:
 private:
     void setupUI();
     void loadSettings();
+    void applyThemeStyle();
 
     QCheckBox *cpuAlertEnabled;
     QSpinBox *cpuThreshold;
@@ -53,13 +58,16 @@ private:
     QSpinBox *tempThreshold;
     QCheckBox *networkAlertEnabled;
     QSpinBox *networkThreshold;
-    
+
     QPushButton *saveBtn;
     QPushButton *testBtn;
     QLabel *statusLabel;
-    
+    QLabel *titleLabel;
+    DWindowCloseButton *closeButton;
+
     static QSettings *alertSettings;
     static QHash<QString, qint64> lastNotificationTime;
+    bool isDarkTheme;
 };
 
 #endif

@@ -60,13 +60,14 @@ private:
 class DiskUsageDialog : public Dtk::Widget::DAbstractDialog
 {
     Q_OBJECT
-    
+
 public:
     DiskUsageDialog(QWidget *parent = nullptr, const QString &path = "/home");
     ~DiskUsageDialog();
-    
-    void paintEvent(QPaintEvent *);
-    
+
+protected:
+    void paintEvent(QPaintEvent *) override;
+
 private slots:
     void onItemFound(const DiskItemInfo &info);
     void onScanProgress(const QString &currentPath);
@@ -74,25 +75,29 @@ private slots:
     void onItemDoubleClicked(QTreeWidgetItem *item, int column);
     void onBackClicked();
     void startScan(const QString &path);
-    
+    void updateTheme(const QString &theme);
+
 private:
     void setupUI();
+    void applyThemeStyle();
     QString formatSize(qint64 bytes);
     QColor getSizeColor(double percentage);
-    
+
     DWindowCloseButton *closeButton;
     QVBoxLayout *mainLayout;
     QHBoxLayout *navLayout;
     QPushButton *backButton;
     QLabel *pathLabel;
+    QLabel *titleLabel;
     QLabel *statusLabel;
     QTreeWidget *treeWidget;
     QProgressBar *scanProgress;
-    
+
     DiskScanWorker *scanWorker;
     QString currentPath;
     QStringList pathHistory;
     qint64 currentTotalSize;
+    bool isDarkTheme;
 };
 
 #endif // DISKUSAGEDIALOG_H

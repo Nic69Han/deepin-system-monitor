@@ -15,13 +15,22 @@
 #include <QHeaderView>
 #include <QMessageBox>
 #include <QTextEdit>
+#include <QPainter>
+#include <QDialog>
 #include <dthememanager.h>
 
 DockerMonitorDialog::DockerMonitorDialog(QWidget *parent)
-    : DDialog(parent)
+    : DAbstractDialog(parent), isDarkTheme(false)
 {
+    setAttribute(Qt::WA_DeleteOnClose, true);
     setWindowTitle(tr("Docker Containers"));
     setFixedSize(800, 500);
+
+    // Connect to theme changes
+    connect(Dtk::Widget::DThemeManager::instance(), &Dtk::Widget::DThemeManager::themeChanged,
+            this, &DockerMonitorDialog::updateTheme);
+    isDarkTheme = (Dtk::Widget::DThemeManager::instance()->theme() == "dark");
+
     setupUI();
 
     refreshTimer = new QTimer(this);
@@ -29,11 +38,7 @@ DockerMonitorDialog::DockerMonitorDialog(QWidget *parent)
     refreshTimer->start(5000);
 
     refreshContainers();
-
-    // Connect to theme changes
-    connect(Dtk::Widget::DThemeManager::instance(), &Dtk::Widget::DThemeManager::themeChanged,
-            this, &DockerMonitorDialog::updateTheme);
-    updateTheme(Dtk::Widget::DThemeManager::instance()->theme());
+    applyThemeStyle();
 }
 
 DockerMonitorDialog::~DockerMonitorDialog()
@@ -41,19 +46,53 @@ DockerMonitorDialog::~DockerMonitorDialog()
     refreshTimer->stop();
 }
 
+void DockerMonitorDialog::paintEvent(QPaintEvent *)
+{
+    QPainter painter(this);
+    painter.setRenderHint(QPainter::Antialiasing);
+
+    QPainterPath path;
+    path.addRoundedRect(QRectF(rect()), 8, 8);
+    painter.setOpacity(1);
+    painter.fillPath(path, isDarkTheme ? QColor("#252525") : QColor("#F8F8F8"));
+}
+
 void DockerMonitorDialog::setupUI()
 {
-    QWidget *content = new QWidget(this);
-    QVBoxLayout *mainLayout = new QVBoxLayout(content);
-    mainLayout->setSpacing(10);
-    mainLayout->setContentsMargins(10, 10, 10, 10);
-    
+    QVBoxLayout *mainLayout = new QVBoxLayout(this);
+    mainLayout->setContentsMargins(1, 1, 1, 1);
+    mainLayout->setSpacing(0);
+
+    // Title bar
+    QWidget *titleBar = new QWidget();
+    titleBar->setFixedHeight(40);
+    QHBoxLayout *titleLayout = new QHBoxLayout(titleBar);
+    titleLayout->setContentsMargins(15, 0, 5, 0);
+
+    titleLabel = new QLabel(tr("Docker Containers"));
+    titleLabel->setStyleSheet("font-size: 14px; font-weight: bold;");
+
+    closeButton = new DWindowCloseButton();
+    closeButton->setFixedSize(27, 23);
+    connect(closeButton, &DWindowCloseButton::clicked, this, &DAbstractDialog::close);
+
+    titleLayout->addWidget(titleLabel);
+    titleLayout->addStretch();
+    titleLayout->addWidget(closeButton);
+    mainLayout->addWidget(titleBar);
+
+    // Content area
+    QWidget *content = new QWidget();
+    QVBoxLayout *contentLayout = new QVBoxLayout(content);
+    contentLayout->setSpacing(10);
+    contentLayout->setContentsMargins(15, 10, 15, 15);
+
     // Status
-    statusLabel = new QLabel(tr("Checking Docker..."), content);
-    mainLayout->addWidget(statusLabel);
-    
+    statusLabel = new QLabel(tr("Checking Docker..."));
+    contentLayout->addWidget(statusLabel);
+
     // Table
-    containerTable = new QTableWidget(content);
+    containerTable = new QTableWidget();
     containerTable->setColumnCount(6);
     containerTable->setHorizontalHeaderLabels({
         tr("Name"), tr("Image"), tr("Status"), tr("Ports"), tr("CPU"), tr("Memory")
@@ -63,31 +102,39 @@ void DockerMonitorDialog::setupUI()
     containerTable->setSelectionBehavior(QAbstractItemView::SelectRows);
     containerTable->setSelectionMode(QAbstractItemView::SingleSelection);
     containerTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
-    connect(containerTable, &QTableWidget::itemSelectionChanged, 
+    containerTable->setAlternatingRowColors(true);
+    containerTable->verticalHeader()->setVisible(false);
+    connect(containerTable, &QTableWidget::itemSelectionChanged,
             this, &DockerMonitorDialog::onSelectionChanged);
-    mainLayout->addWidget(containerTable);
-    
+    contentLayout->addWidget(containerTable);
+
     // Buttons
     QHBoxLayout *btnLayout = new QHBoxLayout();
-    
-    refreshBtn = new QPushButton(tr("Refresh"), content);
+
+    refreshBtn = new QPushButton(tr("Refresh"));
+    refreshBtn->setFixedHeight(30);
     connect(refreshBtn, &QPushButton::clicked, this, &DockerMonitorDialog::refreshContainers);
-    
-    startBtn = new QPushButton(tr("Start"), content);
+
+    startBtn = new QPushButton(tr("Start"));
+    startBtn->setFixedHeight(30);
     connect(startBtn, &QPushButton::clicked, this, &DockerMonitorDialog::onStartContainer);
-    
-    stopBtn = new QPushButton(tr("Stop"), content);
+
+    stopBtn = new QPushButton(tr("Stop"));
+    stopBtn->setFixedHeight(30);
     connect(stopBtn, &QPushButton::clicked, this, &DockerMonitorDialog::onStopContainer);
-    
-    restartBtn = new QPushButton(tr("Restart"), content);
+
+    restartBtn = new QPushButton(tr("Restart"));
+    restartBtn->setFixedHeight(30);
     connect(restartBtn, &QPushButton::clicked, this, &DockerMonitorDialog::onRestartContainer);
-    
-    removeBtn = new QPushButton(tr("Remove"), content);
+
+    removeBtn = new QPushButton(tr("Remove"));
+    removeBtn->setFixedHeight(30);
     connect(removeBtn, &QPushButton::clicked, this, &DockerMonitorDialog::onRemoveContainer);
-    
-    logsBtn = new QPushButton(tr("View Logs"), content);
+
+    logsBtn = new QPushButton(tr("View Logs"));
+    logsBtn->setFixedHeight(30);
     connect(logsBtn, &QPushButton::clicked, this, &DockerMonitorDialog::onViewLogs);
-    
+
     btnLayout->addWidget(refreshBtn);
     btnLayout->addStretch();
     btnLayout->addWidget(startBtn);
@@ -95,10 +142,10 @@ void DockerMonitorDialog::setupUI()
     btnLayout->addWidget(restartBtn);
     btnLayout->addWidget(removeBtn);
     btnLayout->addWidget(logsBtn);
-    
-    mainLayout->addLayout(btnLayout);
-    addContent(content);
-    
+
+    contentLayout->addLayout(btnLayout);
+    mainLayout->addWidget(content);
+
     updateButtons();
 }
 
@@ -287,42 +334,61 @@ void DockerMonitorDialog::onViewLogs()
             logs = tr("No logs available");
         }
 
-        DDialog *logDialog = new DDialog(this);
+        QDialog *logDialog = new QDialog(this);
         logDialog->setWindowTitle(tr("Container Logs"));
         logDialog->setFixedSize(600, 400);
+        logDialog->setAttribute(Qt::WA_DeleteOnClose, true);
+
+        QVBoxLayout *logLayout = new QVBoxLayout(logDialog);
+        logLayout->setContentsMargins(10, 10, 10, 10);
 
         QTextEdit *logText = new QTextEdit(logDialog);
         logText->setReadOnly(true);
         logText->setPlainText(logs);
         logText->setFont(QFont("Monospace", 9));
 
-        logDialog->addContent(logText);
+        // Apply theme to log dialog
+        QString textColor = isDarkTheme ? "#FFFFFF" : "#303030";
+        QString bgColor = isDarkTheme ? "#252525" : "#F8F8F8";
+        logDialog->setStyleSheet(QString("QDialog { background-color: %1; } QTextEdit { background-color: %1; color: %2; border: 1px solid %3; }").arg(bgColor).arg(textColor).arg(isDarkTheme ? "#444444" : "#CCCCCC"));
+
+        logLayout->addWidget(logText);
         logDialog->show();
     }
 }
 
 void DockerMonitorDialog::updateTheme(const QString &theme)
 {
-    bool isDark = (theme == "dark");
-    QString textColor = isDark ? "#FFFFFF" : "#000000";
-    QString bgColor = isDark ? "#252525" : "#FFFFFF";
-    QString borderColor = isDark ? "#444444" : "#DDDDDD";
-    QString headerBg = isDark ? "#333333" : "#F0F0F0";
-    QString altRowBg = isDark ? "#2A2A2A" : "#FAFAFA";
+    isDarkTheme = (theme == "dark");
+    applyThemeStyle();
+    update();
+}
 
-    QString tableStyle = QString(
-        "QTableWidget { background: %1; color: %2; gridline-color: %3; border: 1px solid %3; } "
-        "QTableWidget::item { padding: 5px; } "
-        "QTableWidget::item:selected { background: #2ca7f8; color: white; } "
-        "QHeaderView::section { background: %4; color: %2; border: 1px solid %3; padding: 5px; }"
-    ).arg(bgColor).arg(textColor).arg(borderColor).arg(headerBg);
+void DockerMonitorDialog::applyThemeStyle()
+{
+    QString textColor = isDarkTheme ? "#FFFFFF" : "#303030";
+    QString bgColor = isDarkTheme ? "#2D2D2D" : "#FFFFFF";
+    QString borderColor = isDarkTheme ? "#444444" : "#CCCCCC";
+    QString headerBg = isDarkTheme ? "#3A3A3A" : "#E8E8E8";
+    QString altRowColor = isDarkTheme ? "#333333" : "#F5F5F5";
 
-    QString widgetStyle = QString(
-        "QLabel { color: %1; } "
-        "QPushButton { background: %2; color: %1; border: 1px solid %3; padding: 5px 15px; border-radius: 3px; } "
-        "QPushButton:hover { background: %3; } "
-        "QPushButton:disabled { color: #888888; }"
-    ).arg(textColor).arg(bgColor).arg(borderColor);
+    // Title label
+    titleLabel->setStyleSheet(QString("QLabel { color: %1; background: transparent; font-size: 14px; font-weight: bold; }").arg(textColor));
 
-    setStyleSheet(tableStyle + widgetStyle);
+    // Close button theme
+    Dtk::Widget::DThemeManager::instance()->setTheme(closeButton, isDarkTheme ? "dark" : "light");
+
+    QString style = QString(
+        "QTableWidget { background-color: %1; color: %2; gridline-color: %3; border: 1px solid %3; alternate-background-color: %5; } "
+        "QTableWidget::item { padding: 5px; color: %2; } "
+        "QTableWidget::item:selected { background-color: #2ca7f8; color: white; } "
+        "QHeaderView::section { background-color: %4; color: %2; border: 1px solid %3; padding: 5px; font-weight: bold; } "
+        "QLabel { color: %2; background-color: transparent; } "
+        "QPushButton { background-color: %4; color: %2; border: 1px solid %3; padding: 5px 15px; border-radius: 4px; } "
+        "QPushButton:hover { background-color: #2ca7f8; color: white; border-color: #2ca7f8; } "
+        "QPushButton:pressed { background-color: #1a8ddb; } "
+        "QPushButton:disabled { background-color: %4; color: #888888; border-color: %3; }"
+    ).arg(bgColor).arg(textColor).arg(borderColor).arg(headerBg).arg(altRowColor);
+
+    setStyleSheet(style);
 }

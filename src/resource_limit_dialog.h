@@ -12,7 +12,8 @@
 #ifndef RESOURCELIMITDIALOG_H
 #define RESOURCELIMITDIALOG_H
 
-#include "ddialog.h"
+#include <dabstractdialog.h>
+#include <dwindowclosebutton.h>
 #include <QWidget>
 #include <QSpinBox>
 #include <QSlider>
@@ -23,13 +24,16 @@
 
 DWIDGET_USE_NAMESPACE
 
-class ResourceLimitDialog : public DDialog
+class ResourceLimitDialog : public DAbstractDialog
 {
     Q_OBJECT
 
 public:
     explicit ResourceLimitDialog(int pid, const QString &processName, QWidget *parent = nullptr);
     ~ResourceLimitDialog();
+
+protected:
+    void paintEvent(QPaintEvent *) override;
 
 private slots:
     void applyLimits();
@@ -45,27 +49,32 @@ private:
     bool setMemoryLimit(int megabytes);
     bool setNiceValue(int nice);
     bool setIoPriority(int priority);
+    void applyThemeStyle();
 
     int m_pid;
     QString m_processName;
-    
+
     QCheckBox *cpuLimitCheck;
     QSlider *cpuSlider;
     QLabel *cpuValueLabel;
-    
+
     QCheckBox *memoryLimitCheck;
     QSlider *memorySlider;
     QLabel *memoryValueLabel;
-    
+
     QLabel *niceLabel;
     QSpinBox *niceSpin;
-    
+
     QLabel *ioPriorityLabel;
     QComboBox *ioPriorityCombo;
-    
+
     QPushButton *applyBtn;
     QPushButton *cancelBtn;
     QLabel *statusLabel;
+    QLabel *titleLabel;
+    DWindowCloseButton *closeButton;
+
+    bool isDarkTheme;
 };
 
 #endif

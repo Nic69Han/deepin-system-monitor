@@ -20,50 +20,92 @@
 #include <QFileDialog>
 #include <QMessageBox>
 #include <QStandardPaths>
+#include <QPainter>
 #include <dthememanager.h>
 
 StartupAppsDialog::StartupAppsDialog(QWidget *parent)
-    : DDialog(parent)
+    : DAbstractDialog(parent), isDarkTheme(false)
 {
+    setAttribute(Qt::WA_DeleteOnClose, true);
     setWindowTitle(tr("Startup Applications"));
     setFixedSize(650, 450);
-    setupUI();
-    loadStartupApps();
 
     // Connect to theme changes
     connect(Dtk::Widget::DThemeManager::instance(), &Dtk::Widget::DThemeManager::themeChanged,
             this, &StartupAppsDialog::updateTheme);
-    updateTheme(Dtk::Widget::DThemeManager::instance()->theme());
+    isDarkTheme = (Dtk::Widget::DThemeManager::instance()->theme() == "dark");
+
+    setupUI();
+    loadStartupApps();
+    applyThemeStyle();
 }
 
 StartupAppsDialog::~StartupAppsDialog()
 {
 }
 
+void StartupAppsDialog::paintEvent(QPaintEvent *)
+{
+    QPainter painter(this);
+    painter.setRenderHint(QPainter::Antialiasing);
+
+    QPainterPath path;
+    path.addRoundedRect(QRectF(rect()), 8, 8);
+    painter.setOpacity(1);
+    painter.fillPath(path, isDarkTheme ? QColor("#252525") : QColor("#F8F8F8"));
+}
+
 void StartupAppsDialog::setupUI()
 {
-    QWidget *contentWidget = new QWidget(this);
-    QVBoxLayout *mainLayout = new QVBoxLayout(contentWidget);
-    mainLayout->setContentsMargins(10, 10, 10, 10);
+    QVBoxLayout *mainLayout = new QVBoxLayout(this);
+    mainLayout->setContentsMargins(1, 1, 1, 1);
+    mainLayout->setSpacing(0);
+
+    // Title bar
+    QWidget *titleBar = new QWidget();
+    titleBar->setFixedHeight(40);
+    QHBoxLayout *titleLayout = new QHBoxLayout(titleBar);
+    titleLayout->setContentsMargins(15, 0, 5, 0);
+
+    titleLabel = new QLabel(tr("Startup Applications"));
+    titleLabel->setStyleSheet("font-size: 14px; font-weight: bold;");
+
+    closeButton = new DWindowCloseButton();
+    closeButton->setFixedSize(27, 23);
+    connect(closeButton, &DWindowCloseButton::clicked, this, &DAbstractDialog::close);
+
+    titleLayout->addWidget(titleLabel);
+    titleLayout->addStretch();
+    titleLayout->addWidget(closeButton);
+    mainLayout->addWidget(titleBar);
+
+    // Content area
+    QWidget *contentWidget = new QWidget();
+    QVBoxLayout *contentLayout = new QVBoxLayout(contentWidget);
+    contentLayout->setContentsMargins(15, 10, 15, 15);
+    contentLayout->setSpacing(10);
 
     // Top bar: search
     QHBoxLayout *topLayout = new QHBoxLayout();
     searchEdit = new QLineEdit();
     searchEdit->setPlaceholderText(tr("Search applications..."));
     searchEdit->setFixedWidth(200);
+    searchEdit->setFixedHeight(30);
     connect(searchEdit, &QLineEdit::textChanged, this, &StartupAppsDialog::filterApps);
 
     refreshBtn = new QPushButton(tr("Refresh"));
+    refreshBtn->setFixedHeight(30);
     connect(refreshBtn, &QPushButton::clicked, this, &StartupAppsDialog::refreshApps);
 
     addBtn = new QPushButton(tr("Add..."));
+    addBtn->setFixedHeight(30);
     connect(addBtn, &QPushButton::clicked, this, &StartupAppsDialog::addApp);
 
     topLayout->addWidget(searchEdit);
     topLayout->addStretch();
     topLayout->addWidget(addBtn);
     topLayout->addWidget(refreshBtn);
-    mainLayout->addLayout(topLayout);
+    contentLayout->addLayout(topLayout);
 
     // App table
     appTable = new QTableWidget();
@@ -77,15 +119,18 @@ void StartupAppsDialog::setupUI()
     appTable->setSelectionBehavior(QAbstractItemView::SelectRows);
     appTable->setSelectionMode(QAbstractItemView::SingleSelection);
     appTable->verticalHeader()->setVisible(false);
+    appTable->setAlternatingRowColors(true);
     connect(appTable, &QTableWidget::itemSelectionChanged, this, &StartupAppsDialog::onAppSelected);
     connect(appTable, &QTableWidget::cellChanged, this, &StartupAppsDialog::onCellChanged);
-    mainLayout->addWidget(appTable);
+    contentLayout->addWidget(appTable);
 
     // Action buttons
     QHBoxLayout *btnLayout = new QHBoxLayout();
     toggleBtn = new QPushButton(tr("Enable/Disable"));
     removeBtn = new QPushButton(tr("Remove"));
 
+    toggleBtn->setFixedHeight(30);
+    removeBtn->setFixedHeight(30);
     toggleBtn->setEnabled(false);
     removeBtn->setEnabled(false);
 
@@ -95,13 +140,13 @@ void StartupAppsDialog::setupUI()
     btnLayout->addWidget(toggleBtn);
     btnLayout->addWidget(removeBtn);
     btnLayout->addStretch();
-    mainLayout->addLayout(btnLayout);
+    contentLayout->addLayout(btnLayout);
 
     // Status label
     statusLabel = new QLabel();
-    mainLayout->addWidget(statusLabel);
+    contentLayout->addWidget(statusLabel);
 
-    addContent(contentWidget);
+    mainLayout->addWidget(contentWidget);
 }
 
 QStringList StartupAppsDialog::getAutostartDirs()
@@ -330,27 +375,40 @@ void StartupAppsDialog::addApp()
 
 void StartupAppsDialog::updateTheme(const QString &theme)
 {
-    bool isDark = (theme == "dark");
-    QString textColor = isDark ? "#FFFFFF" : "#000000";
-    QString bgColor = isDark ? "#252525" : "#FFFFFF";
-    QString borderColor = isDark ? "#444444" : "#DDDDDD";
-    QString headerBg = isDark ? "#333333" : "#F0F0F0";
+    isDarkTheme = (theme == "dark");
+    applyThemeStyle();
+    update();
+}
 
-    QString tableStyle = QString(
-        "QTableWidget { background: %1; color: %2; gridline-color: %3; border: 1px solid %3; } "
-        "QTableWidget::item { padding: 5px; } "
-        "QTableWidget::item:selected { background: #2ca7f8; color: white; } "
-        "QHeaderView::section { background: %4; color: %2; border: 1px solid %3; padding: 5px; }"
-    ).arg(bgColor).arg(textColor).arg(borderColor).arg(headerBg);
+void StartupAppsDialog::applyThemeStyle()
+{
+    QString textColor = isDarkTheme ? "#FFFFFF" : "#303030";
+    QString bgColor = isDarkTheme ? "#2D2D2D" : "#FFFFFF";
+    QString borderColor = isDarkTheme ? "#444444" : "#CCCCCC";
+    QString headerBg = isDarkTheme ? "#3A3A3A" : "#E8E8E8";
+    QString altRowColor = isDarkTheme ? "#333333" : "#F5F5F5";
+    QString inputBg = isDarkTheme ? "#3A3A3A" : "#FFFFFF";
 
-    QString widgetStyle = QString(
-        "QLabel { color: %1; } "
-        "QLineEdit { background: %2; color: %1; border: 1px solid %3; padding: 5px; } "
-        "QPushButton { background: %2; color: %1; border: 1px solid %3; padding: 5px 15px; border-radius: 3px; } "
-        "QPushButton:hover { background: %3; } "
-        "QPushButton:disabled { color: #888888; } "
-        "QCheckBox { color: %1; }"
-    ).arg(textColor).arg(bgColor).arg(borderColor);
+    // Title label
+    titleLabel->setStyleSheet(QString("QLabel { color: %1; background: transparent; font-size: 14px; font-weight: bold; }").arg(textColor));
 
-    setStyleSheet(tableStyle + widgetStyle);
+    // Close button theme
+    Dtk::Widget::DThemeManager::instance()->setTheme(closeButton, isDarkTheme ? "dark" : "light");
+
+    QString style = QString(
+        "QTableWidget { background-color: %1; color: %2; gridline-color: %3; border: 1px solid %3; alternate-background-color: %5; } "
+        "QTableWidget::item { padding: 5px; color: %2; } "
+        "QTableWidget::item:selected { background-color: #2ca7f8; color: white; } "
+        "QHeaderView::section { background-color: %4; color: %2; border: 1px solid %3; padding: 5px; font-weight: bold; } "
+        "QLabel { color: %2; background-color: transparent; } "
+        "QLineEdit { background-color: %6; color: %2; border: 1px solid %3; padding: 5px; border-radius: 4px; } "
+        "QPushButton { background-color: %4; color: %2; border: 1px solid %3; padding: 5px 15px; border-radius: 4px; } "
+        "QPushButton:hover { background-color: #2ca7f8; color: white; border-color: #2ca7f8; } "
+        "QPushButton:pressed { background-color: #1a8ddb; } "
+        "QPushButton:disabled { background-color: %4; color: #888888; border-color: %3; } "
+        "QCheckBox { color: %2; background-color: transparent; } "
+        "QCheckBox::indicator { background-color: %6; border: 1px solid %3; border-radius: 2px; }"
+    ).arg(bgColor).arg(textColor).arg(borderColor).arg(headerBg).arg(altRowColor).arg(inputBg);
+
+    setStyleSheet(style);
 }
